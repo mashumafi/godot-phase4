@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://uqyd6vtjqbj5"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Chess2D" type="Chess2D" parent="."]

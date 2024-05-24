@@ -2,20 +2,20 @@
 .godot/
 
 # Ignore library files but not the gdextension file
-demo/bin/*
-!demo/bin/android
-demo/bin/android/*
-!demo/bin/android/.gitkeep
-!demo/bin/linux
-demo/bin/linux/*
-!demo/bin/linux/.gitkeep
-!demo/bin/macos
-demo/bin/macos/*
-!demo/bin/macos/.gitkeep
-!demo/bin/windows
-demo/bin/windows/*
-!demo/bin/windows/.gitkeep
-!demo/bin/*.gdextension
+chess-slides/bin/*
+!chess-slides/bin/android
+chess-slides/bin/android/*
+!chess-slides/bin/android/.gitkeep
+!chess-slides/bin/linux
+chess-slides/bin/linux/*
+!chess-slides/bin/linux/.gitkeep
+!chess-slides/bin/macos
+chess-slides/bin/macos/*
+!chess-slides/bin/macos/.gitkeep
+!chess-slides/bin/windows
+chess-slides/bin/windows/*
+!chess-slides/bin/windows/.gitkeep
+!chess-slides/bin/*.gdextension
 .sconsign*.dblite
 
 # Ignore custom.py
