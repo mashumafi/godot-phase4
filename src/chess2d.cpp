@@ -114,8 +114,9 @@ void Chess2D::_draw() {
 	}
 
 	const Vector2 mouse_square_transform = (get_global_mouse_position() - start_position) / theme->get_square_size();
+	const float width = theme->get_square_size() / 16;
 	if (highlighted_square) {
-		draw_rect(Rect2(start_position + highlighted_square.value() * theme->get_square_size(), square_size), Color("RED"), false, theme->get_square_size() / 16);
+		draw_rect(Rect2(start_position + highlighted_square.value() * theme->get_square_size(), square_size).grow(-width / 2), Color("RED"), false, width);
 	}
 
 	const Ref<Texture> empty_texture;
