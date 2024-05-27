@@ -2,3 +2,6 @@
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp.git
 	branch = 4.0
+[submodule "phase4"]
+	path = phase4
+	url = https://github.com/mashumafi/phase4.git

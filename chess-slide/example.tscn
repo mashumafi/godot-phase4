@@ -1,5 +1,11 @@
-[gd_scene format=3 uid="uid://uqyd6vtjqbj5"]
+[gd_scene load_steps=2 format=3 uid="uid://uqyd6vtjqbj5"]
+
+[ext_resource type="ChessTheme" uid="uid://ckvvdwkbps6g1" path="res://default_chess_theme.tres" id="1_v56od"]
 
 [node name="Node2D" type="Node2D"]
 
 [node name="Chess2D" type="Chess2D" parent="."]
+theme = ExtResource("1_v56od")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.5, 0.5)
