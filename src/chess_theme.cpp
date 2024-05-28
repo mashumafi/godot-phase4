@@ -42,12 +42,12 @@ static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices, Color col
 	return mesh;
 }
 
-static Ref<Mesh> create_arrow_polygon(float square_size, Color color, phase4::engine::common::Square from, phase4::engine::common::Square to) {
+static Ref<Mesh> create_arrow_polygon(real_t square_size, Color color, phase4::engine::common::Square from, phase4::engine::common::Square to) {
 	using namespace phase4::engine::common;
 
 	const Vector2 half_square = Vector2(.5, .5) * square_size;
 
-	const float offset = -square_size * 4;
+	const real_t offset = -square_size * 4;
 	const Vector2 start_position(offset, offset);
 
 	const FieldIndex start_field = from.asFieldIndex();
@@ -57,7 +57,7 @@ static Ref<Mesh> create_arrow_polygon(float square_size, Color color, phase4::en
 	const Vector2 end = start_position + Vector2(end_field.x, 7 - end_field.y) * square_size + half_square;
 
 	const Vector2 line = end - begin;
-	const float angle = line.angle();
+	const real_t angle = line.angle();
 
 	const Vector2 adjusted_begin = begin.move_toward(end, square_size / 4);
 	const Vector2 adjusted_end = end.move_toward(begin, square_size / 2);
@@ -78,14 +78,14 @@ static Ref<Mesh> create_arrow_polygon(float square_size, Color color, phase4::en
 	return create_strip_mesh(polygon, color);
 }
 
-static Ref<Mesh> create_circle_polygon(float square_size, Color color, phase4::engine::common::Square square) {
+static Ref<Mesh> create_circle_polygon(real_t square_size, Color color, phase4::engine::common::Square square) {
 	using namespace phase4::engine::common;
 
 	const size_t size = 32;
-	const float delta = Math_TAU / (size - 1);
+	const real_t delta = Math_TAU / (size - 1);
 	const Vector2 half_square = Vector2(.5, .5) * square_size;
 
-	const float offset = -square_size * 4;
+	const real_t offset = -square_size * 4;
 	const Vector2 start_position(offset, offset);
 
 	const FieldIndex field = square.asFieldIndex();
@@ -273,7 +273,7 @@ const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square 
 	return annotation;
 }
 
-void ChessTheme::set_square_size(float size) {
+void ChessTheme::set_square_size(real_t size) {
 	square_size = size;
 	annotation_meshes.fill(nullptr);
 }

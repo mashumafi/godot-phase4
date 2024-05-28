@@ -5,6 +5,8 @@
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/texture.hpp>
 #include <godot_cpp/classes/mesh.hpp>
+#include <godot_cpp/classes/rendering_server.hpp>
+#include <godot_cpp/classes/material.hpp>
 
 #include <phase4/engine/common/piece_color.h>
 #include <phase4/engine/common/piece_type.h>
@@ -30,10 +32,12 @@ private:
 	Ref<Texture> black_queen_texture;
 	Ref<Texture> black_king_texture;
 
+    Ref<Material> slide_hint_material;
+
 	Color white_square_color;
 	Color black_square_color;
 
-	float square_size;
+	real_t square_size;
 
 	Ref<Font> font;
 
@@ -156,11 +160,11 @@ public:
 		black_square_color = color;
 	}
 
-	float get_square_size() const {
+	real_t get_square_size() const {
 		return square_size;
 	}
 
-	void set_square_size(float size);
+	void set_square_size(real_t size);
 
 	Ref<Font> get_font() const {
 		return font;
@@ -217,6 +221,17 @@ public:
 		}
 		ERR_FAIL_V_MSG(invalid_texture, "Invalid Piece Color");
 	}
+
+    RID slide_hint_canvas_item_create() {
+        RenderingServer* RS = RenderingServer::get_singleton();
+
+        RID canvas_item = RS->canvas_item_create();
+        if (slide_hint_material.is_valid()) {
+            Ref<Material> material = slide_hint_material->duplicate();
+            RS->canvas_item_set_material(canvas_item, material->get_rid());
+        }
+        return canvas_item;
+    }
 };
 
 } //namespace godot

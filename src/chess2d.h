@@ -5,6 +5,7 @@
 
 #include <godot_cpp/classes/input_event.hpp>
 #include <godot_cpp/classes/node2d.hpp>
+#include <godot_cpp/classes/rendering_server.hpp>
 
 #include <phase4/engine/board/session.h>
 
@@ -29,6 +30,8 @@ private:
 
 	std::unique_ptr<phase4::engine::board::Session> session;
 
+	RID demo_canvas_item;
+
 protected:
 	static void _bind_methods();
 
@@ -38,6 +41,9 @@ public:
 		using namespace phase4::engine::common;
 		toggle_annotation(Square::A1, Square::F4);
 		toggle_annotation(Square::D3, Square::D3);
+
+		RenderingServer* RS = RenderingServer::get_singleton();
+		demo_canvas_item = RS->canvas_item_create();
 	}
 
 	void _ready() override;

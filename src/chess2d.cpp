@@ -57,13 +57,15 @@ void Chess2D::_process(double delta) {
 void Chess2D::_draw() {
 	using namespace phase4::engine::common;
 
+	RenderingServer* RS = RenderingServer::get_singleton();
+
 	static const std::array<String, 8> FILES{ "A", "B", "C", "D", "E", "F", "G", "H" };
 	static const std::array<String, 8> RANKS{ "1", "2", "3", "4", "5", "6", "7", "8" };
 
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
-	const float offset = -theme->get_square_size() * 4;
+	const real_t offset = -theme->get_square_size() * 4;
 	const Vector2 start_position(offset, offset);
 
 	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
@@ -89,7 +91,7 @@ void Chess2D::_draw() {
 		draw_texture(texture, start_position + theme->get_square_size() * flippedField);
 	}
 
-	const double font_size = theme->get_square_size() / 5;
+	const real_t font_size = theme->get_square_size() / 5;
 	for (size_t rank = 0; rank < RANKS.size(); rank++) {
 		const size_t rank_index = is_flipped ? rank : RANKS.size() - rank - 1;
 		const Color color = rank % 2 == 0 ? theme->get_black_square_color() : theme->get_white_square_color();
@@ -101,7 +103,7 @@ void Chess2D::_draw() {
 				color);
 	}
 
-	const double ascent = theme->get_font()->get_ascent(font_size);
+	const real_t ascent = theme->get_font()->get_ascent(font_size);
 	for (size_t file = 0; file < FILES.size(); file++) {
 		const size_t file_index = is_flipped ? FILES.size() - file - 1 : file;
 		const Color color = file % 2 == 0 ? theme->get_black_square_color() : theme->get_white_square_color();
@@ -114,7 +116,7 @@ void Chess2D::_draw() {
 	}
 
 	const Vector2 mouse_square_transform = (get_global_mouse_position() - start_position) / theme->get_square_size();
-	const float width = theme->get_square_size() / 16;
+	const real_t width = theme->get_square_size() / 16;
 	if (highlighted_square) {
 		draw_rect(Rect2(start_position + highlighted_square.value() * theme->get_square_size(), square_size).grow(-width / 2), Color("RED"), false, width);
 	}
@@ -123,9 +125,7 @@ void Chess2D::_draw() {
 	for (uint16_t annotation : annotations) {
 		Square from(annotation % 64);
 		Square to(annotation / 64);
-		draw_mesh(
-				theme->get_annotation_mesh(from, to),
-				empty_texture);
+		draw_mesh(theme->get_annotation_mesh(from, to), empty_texture);
 	}
 }
 
@@ -134,7 +134,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 
 	const Ref<InputEventMouseMotion> &mouse_motion = event;
 	if (mouse_motion.is_valid()) {
-		const float offset = -theme->get_square_size() * 4;
+		const real_t offset = -theme->get_square_size() * 4;
 		const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
 		const Vector2 start_position = Vector2(offset, offset) + get_global_position();
 
