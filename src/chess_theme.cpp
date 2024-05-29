@@ -9,7 +9,9 @@
 using namespace godot;
 
 namespace {
-static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices, Color color) {
+static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices) {
+	const Color color = Color::hex(0xFFFFFFFF); // WHITE
+
 	Ref<ArrayMesh> mesh;
 	mesh.instantiate();
 
@@ -42,7 +44,7 @@ static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices, Color col
 	return mesh;
 }
 
-static Ref<Mesh> create_arrow_polygon(real_t square_size, Color color, phase4::engine::common::Square from, phase4::engine::common::Square to) {
+static Ref<Mesh> create_arrow_polygon(real_t square_size, phase4::engine::common::Square from, phase4::engine::common::Square to) {
 	using namespace phase4::engine::common;
 
 	const Vector2 half_square = Vector2(.5, .5) * square_size;
@@ -75,10 +77,10 @@ static Ref<Mesh> create_arrow_polygon(real_t square_size, Color color, phase4::e
 	polygon[5] = adjusted_end + Vector2(square_size / 4, 0).rotated(angle);
 	polygon[6] = adjusted_end + Vector2(0, square_size / 4).rotated(angle);
 
-	return create_strip_mesh(polygon, color);
+	return create_strip_mesh(polygon);
 }
 
-static Ref<Mesh> create_circle_polygon(real_t square_size, Color color, phase4::engine::common::Square square) {
+static Ref<Mesh> create_circle_polygon(real_t square_size, phase4::engine::common::Square square) {
 	using namespace phase4::engine::common;
 
 	const size_t size = 32;
@@ -102,7 +104,7 @@ static Ref<Mesh> create_circle_polygon(real_t square_size, Color color, phase4::
 		circlePolygon[r * 2 + 1] = center + innerRadius.rotated(r * delta);
 	}
 
-	return create_strip_mesh(circlePolygon, color);
+	return create_strip_mesh(circlePolygon);
 }
 } //namespace
 
@@ -268,7 +270,7 @@ const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square 
 
 	Ref<Mesh> &annotation = annotation_meshes[from.get_raw_value() + to.get_raw_value() * 64];
 	if (annotation.is_null()) {
-		annotation = from == to ? create_circle_polygon(square_size, annotation_color, from) : create_arrow_polygon(square_size, annotation_color, from, to);
+		annotation = from == to ? create_circle_polygon(square_size, from) : create_arrow_polygon(square_size, from, to);
 	}
 	return annotation;
 }
@@ -280,5 +282,4 @@ void ChessTheme::set_square_size(real_t size) {
 
 void ChessTheme::set_annotation_color(Color color) {
 	this->annotation_color = color;
-	annotation_meshes.fill(nullptr);
 }
