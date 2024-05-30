@@ -45,10 +45,39 @@ void Chess2D::_bind_methods() {
 	}
 }
 
+Chess2D::Chess2D() {
+	annotations.reserve(64 * 64);
+	using namespace phase4::engine::common;
+	//toggle_annotation(Square::A1, Square::F4);
+	toggle_annotation(Square::D3, Square::D3);
+	toggle_annotation(Square::A8, Square::C6);
+	toggle_annotation(Square::A8, Square::B4);
+}
+
 void Chess2D::_ready() {
 	auto position = phase4::engine::fen::FenToPosition::parse(fen.ascii().get_data());
 	ERR_FAIL_COND_MSG(!position, "Invalid fen: " + fen);
 	session = std::make_unique<phase4::engine::board::Session>(*position);
+
+	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
+
+	squares_canvas_item.instantiate();
+	squares_canvas_item.set_parent(get_canvas_item());
+
+	right_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
+	up_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
+	left_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
+	down_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
+
+	file_rank_canvas_item.instantiate();
+	file_rank_canvas_item.set_parent(get_canvas_item());
+
+	pieces_canvas_item.instantiate();
+	pieces_canvas_item.set_parent(get_canvas_item());
+
+	annotations_canvas_item.instantiate();
+	annotations_canvas_item.set_parent(get_canvas_item());
+	annotations_canvas_item.set_self_modulate(theme->get_annotation_color());
 }
 
 void Chess2D::_process(double delta) {
@@ -57,10 +86,10 @@ void Chess2D::_process(double delta) {
 void Chess2D::_draw() {
 	using namespace phase4::engine::common;
 
-	RenderingServer* RS = RenderingServer::get_singleton();
+	RenderingServer *RS = RenderingServer::get_singleton();
 
-	static const std::array<String, 8> FILES{ "A", "B", "C", "D", "E", "F", "G", "H" };
-	static const std::array<String, 8> RANKS{ "1", "2", "3", "4", "5", "6", "7", "8" };
+	static const std::array<int64_t, 8> FILES{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' };
+	static const std::array<int64_t, 8> RANKS{ '1', '2', '3', '4', '5', '6', '7', '8' };
 
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
@@ -68,12 +97,14 @@ void Chess2D::_draw() {
 	const real_t offset = -theme->get_square_size() * 4;
 	const Vector2 start_position(offset, offset);
 
+	squares_canvas_item.clear();
 	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
 		const FieldIndex field = square.asFieldIndex();
 		const Color color = (field.x + field.y) % 2 == 0 ? theme->get_white_square_color() : theme->get_black_square_color();
-		draw_rect(Rect2(start_position + theme->get_square_size() * Vector2(field.x, field.y), square_size), color);
+		squares_canvas_item.add_rect(Rect2(start_position + theme->get_square_size() * Vector2(field.x, field.y), square_size), color);
 	}
 
+	pieces_canvas_item.clear();
 	Bitboard occupied = session->position().m_occupancySummary;
 	while (occupied != 0) {
 		const Square square(occupied);
@@ -88,15 +119,15 @@ void Chess2D::_draw() {
 
 		const FieldIndex field = square.asFieldIndex();
 		const Vector2 flippedField = is_flipped ? Vector2(7 - field.x, field.y) : Vector2(field.x, 7 - field.y);
-		draw_texture(texture, start_position + theme->get_square_size() * flippedField);
+		pieces_canvas_item.add_texture_rect(Rect2(start_position + theme->get_square_size() * flippedField, square_size), *texture.ptr());
 	}
 
 	const real_t font_size = theme->get_square_size() / 5;
 	for (size_t rank = 0; rank < RANKS.size(); rank++) {
 		const size_t rank_index = is_flipped ? rank : RANKS.size() - rank - 1;
 		const Color color = rank % 2 == 0 ? theme->get_black_square_color() : theme->get_white_square_color();
-		draw_char(
-				theme->get_font(),
+		theme->get_font()->draw_char(
+				*file_rank_canvas_item,
 				start_position + Vector2(0, theme->get_square_size() * (rank + 1)),
 				RANKS[rank_index],
 				font_size,
@@ -107,8 +138,8 @@ void Chess2D::_draw() {
 	for (size_t file = 0; file < FILES.size(); file++) {
 		const size_t file_index = is_flipped ? FILES.size() - file - 1 : file;
 		const Color color = file % 2 == 0 ? theme->get_black_square_color() : theme->get_white_square_color();
-		draw_char(
-				theme->get_font(),
+		theme->get_font()->draw_char(
+				*file_rank_canvas_item,
 				start_position + Vector2(theme->get_square_size() * file, ascent),
 				FILES[file_index],
 				font_size,
@@ -121,11 +152,11 @@ void Chess2D::_draw() {
 		draw_rect(Rect2(start_position + highlighted_square.value() * theme->get_square_size(), square_size).grow(-width / 2), Color("RED"), false, width);
 	}
 
-	const Ref<Texture> empty_texture;
+	annotations_canvas_item.clear();
 	for (uint16_t annotation : annotations) {
 		Square from(annotation % 64);
 		Square to(annotation / 64);
-		draw_mesh(theme->get_annotation_mesh(from, to), empty_texture);
+		annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(from, to).ptr());
 	}
 }
 
@@ -138,10 +169,12 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 		const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
 		const Vector2 start_position = Vector2(offset, offset) + get_global_position();
 
-		const Vector2 mouse_square_transform = (get_global_mouse_position() - start_position) / theme->get_square_size();
+		const Vector2 mouse_square_transform = ((get_global_mouse_position() - start_position) / theme->get_square_size()).floor();
 		if (mouse_square_transform.x >= 0 && mouse_square_transform.y >= 0 && mouse_square_transform.x < 8 && mouse_square_transform.y < 8) {
-			highlighted_square = mouse_square_transform.floor();
-			queue_redraw();
+			if (highlighted_square != mouse_square_transform) {
+				highlighted_square = mouse_square_transform;
+				queue_redraw();
+			}
 		} else if (highlighted_square) {
 			highlighted_square.reset();
 			queue_redraw();
@@ -151,8 +184,16 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 	const Ref<InputEventMouseButton> mouse_button = event;
 	if (mouse_button.is_valid()) {
 		if (mouse_button->get_button_index() == MOUSE_BUTTON_RIGHT) {
-			if (mouse_button->is_pressed()) {
-			} else {
+			const real_t offset = -theme->get_square_size() * 4;
+			const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
+			const Vector2 start_position = Vector2(offset, offset) + get_global_position();
+			const Vector2 mouse_square_transform = ((get_global_mouse_position() - start_position) / theme->get_square_size()).floor();
+			if (mouse_square_transform.x >= 0 && mouse_square_transform.y >= 0 && mouse_square_transform.x < 8 && mouse_square_transform.y < 8) {
+				if (mouse_button->is_pressed()) {
+					annotation_begin_square = mouse_square_transform;
+				} else {
+					annotation_begin_square.reset();
+				}
 			}
 		}
 	}

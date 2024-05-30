@@ -1,6 +1,8 @@
 #ifndef CHESSTHEME_H
 #define CHESSTHEME_H
 
+#include "canvas_item_util.h"
+
 #include <godot_cpp/classes/font.hpp>
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/texture.hpp>
@@ -11,6 +13,8 @@
 #include <phase4/engine/common/piece_color.h>
 #include <phase4/engine/common/piece_type.h>
 #include <phase4/engine/common/square.h>
+
+#include <memory>
 
 namespace godot {
 
@@ -41,7 +45,7 @@ private:
 
 	Ref<Font> font;
 
-    std::array<Ref<Mesh>, 64 * 64> annotation_meshes;
+    std::array<Ref<Mesh>, 64> annotation_meshes;
     Color annotation_color;
 
 protected:
@@ -222,13 +226,13 @@ public:
 		ERR_FAIL_V_MSG(invalid_texture, "Invalid Piece Color");
 	}
 
-    RID slide_hint_canvas_item_create() {
-        RenderingServer* RS = RenderingServer::get_singleton();
+    CanvasItemUtil slide_hint_canvas_item_create() {
+        CanvasItemUtil canvas_item;
+        canvas_item.instantiate();
 
-        RID canvas_item = RS->canvas_item_create();
         if (slide_hint_material.is_valid()) {
             Ref<Material> material = slide_hint_material->duplicate();
-            RS->canvas_item_set_material(canvas_item, material->get_rid());
+            canvas_item.set_material(material);
         }
         return canvas_item;
     }
