@@ -1,0 +1,33 @@
+[gd_resource type="ChessTheme" load_steps=13 format=3 uid="uid://ckvvdwkbps6g1"]
+
+[ext_resource type="Texture2D" uid="uid://0xqslhvpf4i1" path="res://Textures/UI/BlackRook.svg" id="1_00yef"]
+[ext_resource type="Texture2D" uid="uid://bv3v8rlelr7t" path="res://Textures/UI/BlackPawn.svg" id="1_nuhi5"]
+[ext_resource type="Texture2D" uid="uid://ca44vmmucmqqq" path="res://Textures/UI/BlackKing.svg" id="2_adfsg"]
+[ext_resource type="Texture2D" uid="uid://5r4m2r8lsmid" path="res://Textures/UI/WhiteQueen.svg" id="2_f05bj"]
+[ext_resource type="Texture2D" uid="uid://bqlidby262p4g" path="res://Textures/UI/BlackKnight.svg" id="3_jpalm"]
+[ext_resource type="Texture2D" uid="uid://bnc8vy23wcnep" path="res://Textures/UI/BlackQueen.svg" id="5_s7klo"]
+[ext_resource type="FontFile" uid="uid://buykajmt4o4yo" path="res://Fonts/GrotesqueItalic.ttf" id="6_8ylho"]
+[ext_resource type="Texture2D" uid="uid://cc3jhai8laitu" path="res://Textures/UI/WhiteBishop.svg" id="6_igk2j"]
+[ext_resource type="Texture2D" uid="uid://dd6ar1klgqxvq" path="res://Textures/UI/WhiteKing.svg" id="7_80gy2"]
+[ext_resource type="Texture2D" uid="uid://dld8md64340dl" path="res://Textures/UI/WhiteKnight.svg" id="8_sr2o4"]
+[ext_resource type="Texture2D" uid="uid://dkfv0vklkjryj" path="res://Textures/UI/WhitePawn.svg" id="9_d45xu"]
+[ext_resource type="Texture2D" uid="uid://gubmo4d7drpj" path="res://Textures/UI/WhiteRook.svg" id="11_c0s2x"]
+
+[resource]
+white_pawn_texture = ExtResource("9_d45xu")
+white_knight_texture = ExtResource("8_sr2o4")
+white_bishop_texture = ExtResource("6_igk2j")
+white_rook_texture = ExtResource("11_c0s2x")
+white_queen_texture = ExtResource("2_f05bj")
+white_king_texture = ExtResource("7_80gy2")
+black_pawn_texture = ExtResource("1_nuhi5")
+black_knight_texture = ExtResource("3_jpalm")
+black_bishop_texture = ExtResource("1_00yef")
+black_rook_texture = ExtResource("1_00yef")
+black_queen_texture = ExtResource("5_s7klo")
+black_king_texture = ExtResource("2_adfsg")
+white_square_color = Color(0.960784, 0.960784, 0.960784, 1)
+black_square_color = Color(0.180392, 0.545098, 0.341176, 1)
+square_size = 225.0
+font = ExtResource("6_8ylho")
+annotation_color = Color(0, 0.517647, 0.811765, 0.729412)

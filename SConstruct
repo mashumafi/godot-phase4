@@ -11,8 +11,8 @@ def validate_parent_dir(key, val, env):
         raise UserError("'%s' is not a directory: %s" % (key, os.path.dirname(val)))
 
 
-libname = "EXTENSION-NAME"
-projectdir = "demo"
+libname = "phase4"
+projectdir = "chess-slide"
 
 localEnv = Environment(tools=["default"], PLATFORM="")
 
@@ -50,7 +50,7 @@ env.Alias("compiledb", compilation_db)
 
 env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
 
-env.Append(CPPPATH=["src/"])
+env.Append(CPPPATH=["src/", "phase4/include"])
 sources = Glob("src/*.cpp")
 
 file = "{}{}{}".format(libname, env["suffix"], env["SHLIBSUFFIX"])
