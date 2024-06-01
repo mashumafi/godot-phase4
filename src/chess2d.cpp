@@ -47,11 +47,6 @@ void Chess2D::_bind_methods() {
 
 Chess2D::Chess2D() {
 	annotations.reserve(64 * 64);
-	using namespace phase4::engine::common;
-	//toggle_annotation(Square::A1, Square::F4);
-	toggle_annotation(Square::D3, Square::D3);
-	toggle_annotation(Square::A8, Square::C6);
-	toggle_annotation(Square::A8, Square::B4);
 }
 
 void Chess2D::_ready() {
@@ -60,6 +55,11 @@ void Chess2D::_ready() {
 	session = std::make_unique<phase4::engine::board::Session>(*position);
 
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
+
+	const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
+	const Vector2 half_square = square_size / 2;
+	const real_t offset = -theme->get_square_size() * 4;
+	const Vector2 start_position(offset, offset);
 
 	squares_canvas_item.instantiate();
 	squares_canvas_item.set_parent(get_canvas_item());
@@ -75,9 +75,22 @@ void Chess2D::_ready() {
 	pieces_canvas_item.instantiate();
 	pieces_canvas_item.set_parent(get_canvas_item());
 
+	valid_hover_canvas_item.instantiate();
+	valid_hover_canvas_item.set_parent(get_canvas_item());
+	valid_hover_canvas_item.set_self_modulate(Color("GREEN"));
+
+	invalid_hover_canvas_item.instantiate();
+	invalid_hover_canvas_item.set_parent(get_canvas_item());
+	invalid_hover_canvas_item.set_self_modulate(Color("RED"));
+
+	selected_canvas_item.instantiate();
+	selected_canvas_item.set_parent(get_canvas_item());
+	invalid_hover_canvas_item.set_self_modulate(Color("YELLOW"));
+
 	annotations_canvas_item.instantiate();
 	annotations_canvas_item.set_parent(get_canvas_item());
 	annotations_canvas_item.set_self_modulate(theme->get_annotation_color());
+	annotations_canvas_item.set_transform(godot::Transform2D().translated(start_position + half_square));
 }
 
 void Chess2D::_process(double delta) {
@@ -85,8 +98,6 @@ void Chess2D::_process(double delta) {
 
 void Chess2D::_draw() {
 	using namespace phase4::engine::common;
-
-	RenderingServer *RS = RenderingServer::get_singleton();
 
 	static const std::array<int64_t, 8> FILES{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' };
 	static const std::array<int64_t, 8> RANKS{ '1', '2', '3', '4', '5', '6', '7', '8' };
@@ -146,21 +157,32 @@ void Chess2D::_draw() {
 				color);
 	}
 
-	const Vector2 mouse_square_transform = (get_global_mouse_position() - start_position) / theme->get_square_size();
 	const real_t width = theme->get_square_size() / 16;
-	if (highlighted_square) {
-		draw_rect(Rect2(start_position + highlighted_square.value() * theme->get_square_size(), square_size).grow(-width / 2), Color("RED"), false, width);
+	valid_hover_canvas_item.clear();
+	if (!annotation_begin_square) {
+		if (highlighted_square) {
+			valid_hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
+		}
 	}
 
 	annotations_canvas_item.clear();
 	for (uint16_t annotation : annotations) {
-		Square from(annotation % 64);
-		Square to(annotation / 64);
-		annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(from, to).ptr());
+		const Square from(annotation % 64);
+		const Square to(annotation / 64);
+		annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(from, to).ptr(), theme->get_annotation_transform(from, to));
+	}
+
+	if (annotation_begin_square && annotation_end_square) {
+		const Vector2 mouse_square_transform = ((get_global_mouse_position() - start_position) / theme->get_square_size()).floor();
+		const Square from(FieldIndex(annotation_begin_square->x, 7 - annotation_begin_square->y));
+		const Square to(FieldIndex(mouse_square_transform.x, 7 - mouse_square_transform.y));
+		annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(from, to).ptr(), theme->get_annotation_transform(from, to));
 	}
 }
 
 void Chess2D::_input(const Ref<InputEvent> &event) {
+	using namespace phase4::engine::common;
+
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	const Ref<InputEventMouseMotion> &mouse_motion = event;
@@ -168,16 +190,28 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 		const real_t offset = -theme->get_square_size() * 4;
 		const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
 		const Vector2 start_position = Vector2(offset, offset) + get_global_position();
-
 		const Vector2 mouse_square_transform = ((get_global_mouse_position() - start_position) / theme->get_square_size()).floor();
-		if (mouse_square_transform.x >= 0 && mouse_square_transform.y >= 0 && mouse_square_transform.x < 8 && mouse_square_transform.y < 8) {
-			if (highlighted_square != mouse_square_transform) {
-				highlighted_square = mouse_square_transform;
+
+		if (annotation_begin_square) {
+			if (annotation_end_square != mouse_square_transform) {
+				if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
+					annotation_end_square = mouse_square_transform;
+					queue_redraw();
+				} else if (annotation_end_square) {
+					annotation_end_square.reset();
+					queue_redraw();
+				}
+			}
+		} else {
+			if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
+				if (highlighted_square != mouse_square_transform) {
+					highlighted_square = mouse_square_transform;
+					queue_redraw();
+				}
+			} else if (highlighted_square) {
+				highlighted_square.reset();
 				queue_redraw();
 			}
-		} else if (highlighted_square) {
-			highlighted_square.reset();
-			queue_redraw();
 		}
 	}
 
@@ -188,12 +222,23 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 			const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
 			const Vector2 start_position = Vector2(offset, offset) + get_global_position();
 			const Vector2 mouse_square_transform = ((get_global_mouse_position() - start_position) / theme->get_square_size()).floor();
-			if (mouse_square_transform.x >= 0 && mouse_square_transform.y >= 0 && mouse_square_transform.x < 8 && mouse_square_transform.y < 8) {
+			if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
 				if (mouse_button->is_pressed()) {
 					annotation_begin_square = mouse_square_transform;
-				} else {
+					annotation_end_square = mouse_square_transform;
+					queue_redraw();
+				} else if (annotation_begin_square) {
+					if (annotation_end_square) {
+						const Square from(FieldIndex(annotation_begin_square->x, 7 - annotation_begin_square->y));
+						const Square to(FieldIndex(annotation_end_square->x, 7 - annotation_end_square->y));
+						toggle_annotation(from, to);
+						annotation_end_square.reset();
+					}
 					annotation_begin_square.reset();
+					queue_redraw();
 				}
+			} else if (annotation_begin_square) {
+				annotation_begin_square.reset();
 			}
 		}
 	}

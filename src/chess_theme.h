@@ -4,12 +4,14 @@
 #include "canvas_item_util.h"
 
 #include <godot_cpp/classes/font.hpp>
-#include <godot_cpp/classes/resource.hpp>
-#include <godot_cpp/classes/texture.hpp>
+#include <godot_cpp/classes/material.hpp>
 #include <godot_cpp/classes/mesh.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
-#include <godot_cpp/classes/material.hpp>
+#include <godot_cpp/classes/resource.hpp>
+#include <godot_cpp/classes/texture.hpp>
+#include <godot_cpp/core/math.hpp>
 
+#include <phase4/engine/common/field_index.h>
 #include <phase4/engine/common/piece_color.h>
 #include <phase4/engine/common/piece_type.h>
 #include <phase4/engine/common/square.h>
@@ -36,7 +38,7 @@ private:
 	Ref<Texture> black_queen_texture;
 	Ref<Texture> black_king_texture;
 
-    Ref<Material> slide_hint_material;
+	Ref<Material> slide_hint_material;
 
 	Color white_square_color;
 	Color black_square_color;
@@ -45,8 +47,10 @@ private:
 
 	Ref<Font> font;
 
-    std::array<Ref<Mesh>, 64> annotation_meshes;
-    Color annotation_color;
+	std::array<Ref<Mesh>, 64> annotation_meshes;
+	Color annotation_color;
+
+	Ref<Mesh> highlight_mesh;
 
 protected:
 	static void _bind_methods();
@@ -184,7 +188,33 @@ public:
 
 	void set_annotation_color(Color color);
 
-	const Ref<Mesh>& get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to);
+	const Ref<Mesh> &get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to);
+
+	Vector2 to_local(const phase4::engine::common::FieldIndex &field) const {
+		return godot::Vector2(field.x, 7 - field.y) * godot::Vector2(square_size, square_size);
+	}
+
+	Vector2 to_global(const phase4::engine::common::FieldIndex &field) const {
+		return to_local(field) - godot::Vector2(1, 1) * square_size * 4;
+	}
+
+	godot::Transform2D get_annotation_transform(phase4::engine::common::Square from, phase4::engine::common::Square to) const {
+		using namespace phase4::engine::common;
+
+		ERR_FAIL_COND_V(square_size <= 0, godot::Transform2D());
+
+		const godot::Vector2 begin = to_local(from.asFieldIndex());
+		if (from == to) {
+			return godot::Transform2D().translated(begin);
+		}
+
+		const godot::Vector2 end = to_local(to.asFieldIndex());
+		const godot::Vector2 diff = end - begin;
+
+		return godot::Transform2D()
+				.scaled(Vector2(diff.x == 0 ? 1 : diff.x, diff.y == 0 ? 1 : diff.y).sign())
+				.translated(begin);
+	}
 
 	const Ref<Texture> &get_piece_texture(phase4::engine::common::PieceColor color, phase4::engine::common::PieceType piece) {
 		static const Ref<Texture> invalid_texture;
@@ -226,16 +256,20 @@ public:
 		ERR_FAIL_V_MSG(invalid_texture, "Invalid Piece Color");
 	}
 
-    CanvasItemUtil slide_hint_canvas_item_create() {
-        CanvasItemUtil canvas_item;
-        canvas_item.instantiate();
+	const Ref<Mesh>& get_highlight_mesh() const {
+		return highlight_mesh;
+	}
 
-        if (slide_hint_material.is_valid()) {
-            Ref<Material> material = slide_hint_material->duplicate();
-            canvas_item.set_material(material);
-        }
-        return canvas_item;
-    }
+	CanvasItemUtil slide_hint_canvas_item_create() {
+		CanvasItemUtil canvas_item;
+		canvas_item.instantiate();
+
+		if (slide_hint_material.is_valid()) {
+			Ref<Material> material = slide_hint_material->duplicate();
+			canvas_item.set_material(material);
+		}
+		return canvas_item;
+	}
 };
 
 } //namespace godot

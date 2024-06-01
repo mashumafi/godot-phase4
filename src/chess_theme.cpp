@@ -44,22 +44,13 @@ static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices) {
 	return mesh;
 }
 
-static Ref<Mesh> create_arrow_polygon(real_t square_size, phase4::engine::common::Square square) {
+static Ref<Mesh> create_arrow_polygon(real_t square_size, godot::Vector2i target) {
 	using namespace phase4::engine::common;
 
-	const Vector2 half_square = Vector2(.5, .5) * square_size;
+	const Vector2 begin(0, 0);
+	const Vector2 end = target * square_size;
 
-	const real_t offset = -square_size * 4;
-	const Vector2 start_position(offset, offset);
-
-	const FieldIndex start_field = Square::A8.asFieldIndex();
-	const FieldIndex end_field = square.asFieldIndex();
-
-	const Vector2 begin = start_position + Vector2(start_field.x, 7 - start_field.y) * square_size + half_square;
-	const Vector2 end = start_position + Vector2(end_field.x, 7 - end_field.y) * square_size + half_square;
-
-	const Vector2 line = end - begin;
-	const real_t angle = line.angle();
+	const real_t angle = end.angle();
 
 	const Vector2 adjusted_begin = begin.move_toward(end, square_size / 4);
 	const Vector2 adjusted_end = end.move_toward(begin, square_size / 2);
@@ -85,12 +76,6 @@ static Ref<Mesh> create_circle_polygon(real_t square_size) {
 
 	const size_t size = 32;
 	const real_t delta = Math_TAU / (size - 1);
-	const Vector2 half_square = Vector2(.5, .5) * square_size;
-
-	const real_t offset = -square_size * 4;
-	const Vector2 start_position(offset, offset);
-
-	const Vector2 center = start_position + Vector2(0, 0) * square_size + half_square;
 
 	const Vector2 outterRadius(square_size / 2.0f * .9f, 0);
 	const Vector2 innerRadius(square_size / 2.0f * .8f, 0);
@@ -98,11 +83,38 @@ static Ref<Mesh> create_circle_polygon(real_t square_size) {
 	PackedVector2Array circlePolygon;
 	circlePolygon.resize(size * 2);
 	for (size_t r = 0; r < size; ++r) {
-		circlePolygon[r * 2] = center + outterRadius.rotated(r * delta);
-		circlePolygon[r * 2 + 1] = center + innerRadius.rotated(r * delta);
+		circlePolygon[r * 2] = outterRadius.rotated(r * delta);
+		circlePolygon[r * 2 + 1] = innerRadius.rotated(r * delta);
 	}
 
 	return create_strip_mesh(circlePolygon);
+}
+
+static Ref<Mesh> create_hollow_square_polygon(real_t square_size, real_t width) {
+	using namespace phase4::engine::common;
+
+    const Rect2 outterRect(0, 0, square_size, square_size);
+    const Rect2 innerRect = outterRect.grow(square_size * width);
+
+	PackedVector2Array squarePolygon;
+	squarePolygon.resize(10);
+
+    squarePolygon[0] = outterRect.get_position();
+    squarePolygon[1] = innerRect.get_position();
+    squarePolygon[2] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y);
+    squarePolygon[3] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y);
+
+    squarePolygon[4] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y + outterRect.get_size().y);
+    squarePolygon[5] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y + innerRect.get_size().y);
+
+    squarePolygon[6] = Vector2(outterRect.get_position().x, outterRect.get_position().y + outterRect.get_size().y);
+    squarePolygon[7] = Vector2(innerRect.get_position().x, innerRect.get_position().y + innerRect.get_size().y);
+
+    squarePolygon[8] = outterRect.get_position();
+    squarePolygon[9] = innerRect.get_position();
+    
+
+	return create_strip_mesh(squarePolygon);
 }
 } //namespace
 
@@ -266,18 +278,30 @@ void ChessTheme::_bind_methods() {
 const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to) {
 	using namespace phase4::engine::common;
 
-    uint64_t square = abs(from.get_raw_value() - to.get_raw_value());
+	static const godot::Ref<godot::Mesh> empty_mesh;
+	ERR_FAIL_COND_V(square_size <= 0, empty_mesh);
+
+	const FieldIndex begin = from.asFieldIndex();
+	const FieldIndex end = to.asFieldIndex();
+	const Vector2i line = Vector2i(end.x - begin.x, (7 - end.y) - (7 - begin.y)).abs();
+
+	const uint64_t square =  Square(FieldIndex(line.x, line.y));
 	Ref<Mesh> &annotation = annotation_meshes[square];
 	if (annotation.is_null()) {
-		annotation = create_arrow_polygon(square_size, Square(square));
+		annotation = create_arrow_polygon(square_size, line);
 	}
 	return annotation;
 }
 
 void ChessTheme::set_square_size(real_t size) {
+	using namespace phase4::engine::common;
+
 	square_size = size;
 	annotation_meshes.fill(nullptr);
-	annotation_meshes[0] = create_circle_polygon(square_size);
+
+	ERR_FAIL_COND(square_size <= 0);
+	annotation_meshes[Square::A1.get_raw_value()] = create_circle_polygon(square_size);
+    highlight_mesh = create_hollow_square_polygon(square_size, -.05);
 }
 
 void ChessTheme::set_annotation_color(Color color) {

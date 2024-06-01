@@ -2,14 +2,14 @@
 #define CANVAS_ITEM_UTIL_H
 
 #include <godot_cpp/classes/material.hpp>
-#include <godot_cpp/classes/texture.hpp>
-#include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/mesh.hpp>
+#include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
-#include <godot_cpp/variant/utility_functions.hpp>
+#include <godot_cpp/classes/texture.hpp>
 #include <godot_cpp/variant/color.hpp>
-#include <godot_cpp/variant/transform2d.hpp>
 #include <godot_cpp/variant/rect2.hpp>
+#include <godot_cpp/variant/transform2d.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
 
 #include <memory>
 
@@ -40,43 +40,49 @@ public:
 		godot::RenderingServer::get_singleton()->canvas_item_set_material(canvas_item, this->material->get_rid());
 	}
 
-	inline void set_parent(godot::RID parent) {
+	inline void set_parent(godot::RID parent) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_set_parent(canvas_item, parent);
 	}
 
-	inline void set_self_modulate(const godot::Color& color) {
+	inline void set_self_modulate(const godot::Color &color) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_set_self_modulate(canvas_item, color);
 	}
 
-	inline void add_rect(const godot::Rect2 rect, const godot::Color &color) {
+	inline void set_transform(const godot::Transform2D &transform) const {
+		ERR_FAIL_COND(!canvas_item.is_valid());
+
+		godot::RenderingServer::get_singleton()->canvas_item_set_transform(canvas_item, transform);
+	}
+
+	inline void add_rect(const godot::Rect2 rect, const godot::Color &color) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_add_rect(canvas_item, rect, color);
 	}
 
-	inline void add_texture_rect(const godot::Rect2 &rect, const godot::Texture &texture, bool tile = false, const godot::Color &modulate = godot::Color(1, 1, 1, 1), bool transpose = false) {
+	inline void add_texture_rect(const godot::Rect2 &rect, const godot::Texture &texture, bool tile = false, const godot::Color &modulate = godot::Color(1, 1, 1, 1), bool transpose = false) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_add_texture_rect(canvas_item, rect, texture.get_rid());
 	}
 
-	inline void add_mesh(const godot::Mesh &mesh, const godot::Transform2D &transform = godot::Transform2D(), const godot::Color &modulate = godot::Color(1, 1, 1, 1)) {
+	inline void add_mesh(const godot::Mesh &mesh, const godot::Transform2D &transform = godot::Transform2D(), const godot::Color &modulate = godot::Color(1, 1, 1, 1)) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_add_mesh(canvas_item, mesh.get_rid(), transform, modulate);
 	}
 
-	inline void add_mesh(const godot::Mesh &mesh, const godot::Transform2D &transform, const godot::Color &modulate, const godot::Texture &texture) {
+	inline void add_mesh(const godot::Mesh &mesh, const godot::Transform2D &transform, const godot::Color &modulate, const godot::Texture &texture) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_add_mesh(canvas_item, mesh.get_rid(), transform, modulate, texture.get_rid());
 	}
 
-	inline void clear() {
+	inline void clear() const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_clear(canvas_item);

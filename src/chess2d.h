@@ -27,6 +27,7 @@ private:
 	std::optional<Vector2i> highlighted_square;
 	std::optional<Vector2i> selected_square;
 	std::optional<Vector2i> annotation_begin_square;
+	std::optional<Vector2i> annotation_end_square;
 	std::unordered_set<uint16_t> annotations;
 
 	std::unique_ptr<phase4::engine::board::Session> session;
@@ -38,6 +39,9 @@ private:
 	CanvasItemUtil down_slide_hint_canvas_item;
 	CanvasItemUtil file_rank_canvas_item;
 	CanvasItemUtil pieces_canvas_item;
+	CanvasItemUtil valid_hover_canvas_item;
+	CanvasItemUtil invalid_hover_canvas_item;
+	CanvasItemUtil selected_canvas_item;
 	CanvasItemUtil annotations_canvas_item;
 
 protected:
