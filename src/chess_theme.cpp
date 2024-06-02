@@ -93,26 +93,25 @@ static Ref<Mesh> create_circle_polygon(real_t square_size) {
 static Ref<Mesh> create_hollow_square_polygon(real_t square_size, real_t width) {
 	using namespace phase4::engine::common;
 
-    const Rect2 outterRect(0, 0, square_size, square_size);
-    const Rect2 innerRect = outterRect.grow(square_size * width);
+	const Rect2 outterRect(0, 0, square_size, square_size);
+	const Rect2 innerRect = outterRect.grow(square_size * width);
 
 	PackedVector2Array squarePolygon;
 	squarePolygon.resize(10);
 
-    squarePolygon[0] = outterRect.get_position();
-    squarePolygon[1] = innerRect.get_position();
-    squarePolygon[2] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y);
-    squarePolygon[3] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y);
+	squarePolygon[0] = outterRect.get_position();
+	squarePolygon[1] = innerRect.get_position();
+	squarePolygon[2] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y);
+	squarePolygon[3] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y);
 
-    squarePolygon[4] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y + outterRect.get_size().y);
-    squarePolygon[5] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y + innerRect.get_size().y);
+	squarePolygon[4] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y + outterRect.get_size().y);
+	squarePolygon[5] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y + innerRect.get_size().y);
 
-    squarePolygon[6] = Vector2(outterRect.get_position().x, outterRect.get_position().y + outterRect.get_size().y);
-    squarePolygon[7] = Vector2(innerRect.get_position().x, innerRect.get_position().y + innerRect.get_size().y);
+	squarePolygon[6] = Vector2(outterRect.get_position().x, outterRect.get_position().y + outterRect.get_size().y);
+	squarePolygon[7] = Vector2(innerRect.get_position().x, innerRect.get_position().y + innerRect.get_size().y);
 
-    squarePolygon[8] = outterRect.get_position();
-    squarePolygon[9] = innerRect.get_position();
-    
+	squarePolygon[8] = outterRect.get_position();
+	squarePolygon[9] = innerRect.get_position();
 
 	return create_strip_mesh(squarePolygon);
 }
@@ -273,6 +272,15 @@ void ChessTheme::_bind_methods() {
 		ClassDB::bind_method(D_METHOD(set_annotation_color_method, annotation_color_property), &ChessTheme::set_annotation_color);
 		ClassDB::add_property(class_name, PropertyInfo(Variant::COLOR, annotation_color_property, PROPERTY_HINT_NONE), set_annotation_color_method, get_annotation_color_method);
 	}
+
+	{ // Slide Hint
+		const StringName get_slide_hint_material_method = "get_slide_hint_material";
+		const StringName set_slide_hint_material_method = "set_slide_hint_material";
+		const StringName slide_hint_material_property = "slide_hint_material";
+		ClassDB::bind_method(D_METHOD(get_slide_hint_material_method), &ChessTheme::get_slide_hint_material);
+		ClassDB::bind_method(D_METHOD(set_slide_hint_material_method, slide_hint_material_property), &ChessTheme::set_slide_hint_material);
+		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, slide_hint_material_property, PROPERTY_HINT_NONE), set_slide_hint_material_method, get_slide_hint_material_method);
+	}
 }
 
 const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to) {
@@ -285,7 +293,7 @@ const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square 
 	const FieldIndex end = to.asFieldIndex();
 	const Vector2i line = Vector2i(end.x - begin.x, (7 - end.y) - (7 - begin.y)).abs();
 
-	const uint64_t square =  Square(FieldIndex(line.x, line.y));
+	const uint64_t square = Square(FieldIndex(line.x, line.y));
 	Ref<Mesh> &annotation = annotation_meshes[square];
 	if (annotation.is_null()) {
 		annotation = create_arrow_polygon(square_size, line);
@@ -301,7 +309,7 @@ void ChessTheme::set_square_size(real_t size) {
 
 	ERR_FAIL_COND(square_size <= 0);
 	annotation_meshes[Square::A1.get_raw_value()] = create_circle_polygon(square_size);
-    highlight_mesh = create_hollow_square_polygon(square_size, -.05);
+	highlight_mesh = create_hollow_square_polygon(square_size, -.05);
 }
 
 void ChessTheme::set_annotation_color(Color color) {

@@ -4,10 +4,9 @@
 #include "canvas_item_util.h"
 
 #include <godot_cpp/classes/font.hpp>
-#include <godot_cpp/classes/material.hpp>
 #include <godot_cpp/classes/mesh.hpp>
-#include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/resource.hpp>
+#include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/texture.hpp>
 #include <godot_cpp/core/math.hpp>
 
@@ -38,7 +37,7 @@ private:
 	Ref<Texture> black_queen_texture;
 	Ref<Texture> black_king_texture;
 
-	Ref<Material> slide_hint_material;
+	Ref<godot::ShaderMaterial> slide_hint_material;
 
 	Color white_square_color;
 	Color black_square_color;
@@ -256,16 +255,26 @@ public:
 		ERR_FAIL_V_MSG(invalid_texture, "Invalid Piece Color");
 	}
 
-	const Ref<Mesh>& get_highlight_mesh() const {
+	const Ref<Mesh> &get_highlight_mesh() const {
 		return highlight_mesh;
 	}
 
-	CanvasItemUtil slide_hint_canvas_item_create() {
+	Ref<ShaderMaterial> get_slide_hint_material() const {
+		return slide_hint_material;
+	}
+
+	void set_slide_hint_material(const Ref<godot::ShaderMaterial> &material) {
+		this->slide_hint_material = material;
+	}
+
+	CanvasItemUtil slide_hint_canvas_item_create(const Vector2 &direction) {
 		CanvasItemUtil canvas_item;
 		canvas_item.instantiate();
 
 		if (slide_hint_material.is_valid()) {
-			Ref<Material> material = slide_hint_material->duplicate();
+			godot::UtilityFunctions::print("material valid!");
+			const godot::Ref<godot::ShaderMaterial> &material = slide_hint_material->duplicate();
+			material->set_shader_parameter("direction", direction);
 			canvas_item.set_material(material);
 		}
 		return canvas_item;

@@ -1,12 +1,15 @@
 #include "chess2d.h"
 
-#include <godot_cpp/classes/array_mesh.hpp>
-#include <godot_cpp/classes/gradient_texture2d.hpp>
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/classes/input_event_mouse_motion.hpp>
-#include <godot_cpp/classes/rendering_server.hpp>
+#include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/variant/utility_functions.hpp>
+#include <godot_cpp/core/property_info.hpp>
+#include <godot_cpp/variant/color.hpp>
+#include <godot_cpp/variant/rect2.hpp>
+#include <godot_cpp/variant/string_name.hpp>
+#include <godot_cpp/variant/transform2d.hpp>
+#include <godot_cpp/variant/vector2.hpp>
 
 #include <phase4/engine/fen/fen_to_position.h>
 
@@ -64,13 +67,18 @@ void Chess2D::_ready() {
 	squares_canvas_item.instantiate();
 	squares_canvas_item.set_parent(get_canvas_item());
 
-	right_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
-	up_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
-	left_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
-	down_slide_hint_canvas_item = theme->slide_hint_canvas_item_create();
-
 	file_rank_canvas_item.instantiate();
 	file_rank_canvas_item.set_parent(get_canvas_item());
+
+	const float slide_hint_scale = .25;
+	right_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(slide_hint_scale, 0));
+	right_slide_hint_canvas_item.set_parent(get_canvas_item());
+	up_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, -slide_hint_scale));
+	up_slide_hint_canvas_item.set_parent(get_canvas_item());
+	left_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(-slide_hint_scale, 0));
+	left_slide_hint_canvas_item.set_parent(get_canvas_item());
+	down_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, slide_hint_scale));
+	down_slide_hint_canvas_item.set_parent(get_canvas_item());
 
 	pieces_canvas_item.instantiate();
 	pieces_canvas_item.set_parent(get_canvas_item());
@@ -110,29 +118,16 @@ void Chess2D::_draw() {
 
 	squares_canvas_item.clear();
 	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
+		// TODO: handle flip
+		if ((square.asBitboard() & session->position().m_walls) != 0)
+			continue;
+
 		const FieldIndex field = square.asFieldIndex();
 		const Color color = (field.x + field.y) % 2 == 0 ? theme->get_white_square_color() : theme->get_black_square_color();
 		squares_canvas_item.add_rect(Rect2(start_position + theme->get_square_size() * Vector2(field.x, field.y), square_size), color);
 	}
 
-	pieces_canvas_item.clear();
-	Bitboard occupied = session->position().m_occupancySummary;
-	while (occupied != 0) {
-		const Square square(occupied);
-		occupied = occupied.popLsb();
-
-		const auto piece = session->position().getPiece(square);
-		ERR_CONTINUE_MSG(!piece, "Piece expected");
-
-		const auto [piece_color, piece_type] = *piece;
-		const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
-		ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
-
-		const FieldIndex field = square.asFieldIndex();
-		const Vector2 flippedField = is_flipped ? Vector2(7 - field.x, field.y) : Vector2(field.x, 7 - field.y);
-		pieces_canvas_item.add_texture_rect(Rect2(start_position + theme->get_square_size() * flippedField, square_size), *texture.ptr());
-	}
-
+	file_rank_canvas_item.clear();
 	const real_t font_size = theme->get_square_size() / 5;
 	for (size_t rank = 0; rank < RANKS.size(); rank++) {
 		const size_t rank_index = is_flipped ? rank : RANKS.size() - rank - 1;
@@ -157,6 +152,59 @@ void Chess2D::_draw() {
 				color);
 	}
 
+	right_slide_hint_canvas_item.clear();
+	up_slide_hint_canvas_item.clear();
+	left_slide_hint_canvas_item.clear();
+	down_slide_hint_canvas_item.clear();
+	const std::array<FieldIndex, 64> &slide_dir = WallOperations::SLIDE_DIR[session->position().m_walls.fastBitScan()];
+	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
+		// TODO: handle flip
+		const FieldIndex field = square.asFieldIndex();
+
+		const Rect2 rect(start_position + theme->get_square_size() * Vector2(field.x, field.y), square_size);
+		const Color color = Color::hex(0xa75cff7b);
+
+		const FieldIndex direction = slide_dir[square];
+		if (direction == FieldIndex::ZERO)
+			continue;
+
+		switch (direction.x + direction.y * 2) {
+			case -4:
+				down_slide_hint_canvas_item.add_rect(rect, color);
+				break;
+			case -2:
+				left_slide_hint_canvas_item.add_rect(rect, color);
+				break;
+			case 2:
+				right_slide_hint_canvas_item.add_rect(rect, color);
+				break;
+			case 4:
+				up_slide_hint_canvas_item.add_rect(rect, color);
+				break;
+			default:
+				godot::UtilityFunctions::print(Vector2i(direction.x, direction.y));
+				break;
+		}
+	}
+
+	pieces_canvas_item.clear();
+	Bitboard occupied = session->position().m_occupancySummary;
+	while (occupied != 0) {
+		const Square square(occupied);
+		occupied = occupied.popLsb();
+
+		const auto piece = session->position().getPiece(square);
+		ERR_CONTINUE_MSG(!piece, "Piece expected");
+
+		const auto [piece_color, piece_type] = *piece;
+		const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
+		ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
+
+		const FieldIndex field = square.asFieldIndex();
+		const Vector2 flippedField = is_flipped ? Vector2(7 - field.x, field.y) : Vector2(field.x, 7 - field.y);
+		pieces_canvas_item.add_texture_rect(Rect2(start_position + theme->get_square_size() * flippedField, square_size), *texture.ptr());
+	}
+
 	const real_t width = theme->get_square_size() / 16;
 	valid_hover_canvas_item.clear();
 	if (!annotation_begin_square) {
@@ -169,6 +217,7 @@ void Chess2D::_draw() {
 	for (uint16_t annotation : annotations) {
 		const Square from(annotation % 64);
 		const Square to(annotation / 64);
+		// TODO: Handle flipped board
 		annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(from, to).ptr(), theme->get_annotation_transform(from, to));
 	}
 
@@ -231,6 +280,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					if (annotation_end_square) {
 						const Square from(FieldIndex(annotation_begin_square->x, 7 - annotation_begin_square->y));
 						const Square to(FieldIndex(annotation_end_square->x, 7 - annotation_end_square->y));
+						// TODO: Handle flipped board
 						toggle_annotation(from, to);
 						annotation_end_square.reset();
 					}
