@@ -305,6 +305,7 @@ void Chess2D::set_fen(const String &fen) {
 	auto position = phase4::engine::fen::FenToPosition::parse(fen.ascii().get_data());
 	ERR_FAIL_COND_MSG(!position, "Invalid fen: " + fen);
 	session->setPosition(*position);
+	queue_redraw();
 }
 
 Ref<ChessTheme> Chess2D::get_theme() const {
