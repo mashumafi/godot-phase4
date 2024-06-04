@@ -12,6 +12,7 @@
 #include <godot_cpp/variant/vector2.hpp>
 
 #include <phase4/engine/fen/fen_to_position.h>
+#include <phase4/engine/fen/position_to_fen.h>
 
 #include <array>
 
@@ -49,13 +50,12 @@ void Chess2D::_bind_methods() {
 }
 
 Chess2D::Chess2D() {
+	session = std::make_unique<phase4::engine::board::Session>();
 	annotations.reserve(64 * 64);
 }
 
 void Chess2D::_ready() {
-	auto position = phase4::engine::fen::FenToPosition::parse(fen.ascii().get_data());
-	ERR_FAIL_COND_MSG(!position, "Invalid fen: " + fen);
-	session = std::make_unique<phase4::engine::board::Session>(*position);
+	compute_valid_moves();
 
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
@@ -70,14 +70,14 @@ void Chess2D::_ready() {
 	file_rank_canvas_item.instantiate();
 	file_rank_canvas_item.set_parent(get_canvas_item());
 
-	const float slide_hint_scale = .25;
-	right_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(slide_hint_scale, 0));
+	const float slide_hint_speed = .25;
+	right_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(slide_hint_speed, 0));
 	right_slide_hint_canvas_item.set_parent(get_canvas_item());
-	up_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, -slide_hint_scale));
+	up_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, -slide_hint_speed));
 	up_slide_hint_canvas_item.set_parent(get_canvas_item());
-	left_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(-slide_hint_scale, 0));
+	left_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(-slide_hint_speed, 0));
 	left_slide_hint_canvas_item.set_parent(get_canvas_item());
-	down_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, slide_hint_scale));
+	down_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, slide_hint_speed));
 	down_slide_hint_canvas_item.set_parent(get_canvas_item());
 
 	pieces_canvas_item.instantiate();
@@ -118,13 +118,13 @@ void Chess2D::_draw() {
 
 	squares_canvas_item.clear();
 	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
-		// TODO: handle flip
-		if ((square.asBitboard() & session->position().m_walls) != 0)
+		const Square flippedSquare = is_flipped ? square.flip() : square;
+		if ((flippedSquare.asBitboard() & session->position().m_walls) != 0)
 			continue;
 
-		const FieldIndex field = square.asFieldIndex();
+		const FieldIndex field = flippedSquare.asFieldIndex();
 		const Color color = (field.x + field.y) % 2 == 0 ? theme->get_white_square_color() : theme->get_black_square_color();
-		squares_canvas_item.add_rect(Rect2(start_position + theme->get_square_size() * Vector2(field.x, field.y), square_size), color);
+		squares_canvas_item.add_rect(Rect2(get_square_position(flippedSquare), square_size), color);
 	}
 
 	file_rank_canvas_item.clear();
@@ -158,19 +158,16 @@ void Chess2D::_draw() {
 	down_slide_hint_canvas_item.clear();
 	const std::array<FieldIndex, 64> &slide_dir = WallOperations::SLIDE_DIR[session->position().m_walls.fastBitScan()];
 	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
-		// TODO: handle flip
-		const FieldIndex field = square.asFieldIndex();
-
-		const Rect2 rect(start_position + theme->get_square_size() * Vector2(field.x, field.y), square_size);
+		const Rect2 rect(get_square_position(square), square_size);
 		const Color color = Color::hex(0xa75cff7b);
 
-		const FieldIndex direction = slide_dir[square];
+		const FieldIndex direction = is_flipped ? -slide_dir[square] : slide_dir[square];
 		if (direction == FieldIndex::ZERO)
 			continue;
 
 		switch (direction.x + direction.y * 2) {
 			case -4:
-				down_slide_hint_canvas_item.add_rect(rect, color);
+				up_slide_hint_canvas_item.add_rect(rect, color);
 				break;
 			case -2:
 				left_slide_hint_canvas_item.add_rect(rect, color);
@@ -179,7 +176,7 @@ void Chess2D::_draw() {
 				right_slide_hint_canvas_item.add_rect(rect, color);
 				break;
 			case 4:
-				up_slide_hint_canvas_item.add_rect(rect, color);
+				down_slide_hint_canvas_item.add_rect(rect, color);
 				break;
 			default:
 				godot::UtilityFunctions::print(Vector2i(direction.x, direction.y));
@@ -188,28 +185,32 @@ void Chess2D::_draw() {
 	}
 
 	pieces_canvas_item.clear();
-	Bitboard occupied = session->position().m_occupancySummary;
-	while (occupied != 0) {
-		const Square square(occupied);
-		occupied = occupied.popLsb();
+	for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
+		for (PieceColor piece_color = PieceColor::WHITE; piece_color != PieceColor::INVALID; ++piece_color) {
+			const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
+			ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
 
-		const auto piece = session->position().getPiece(square);
-		ERR_CONTINUE_MSG(!piece, "Piece expected");
+			Bitboard squares = session->position().colorPieceMask(piece_color, piece_type);
+			while (squares != 0) {
+				const Square square(squares);
+				squares = squares.popLsb();
 
-		const auto [piece_color, piece_type] = *piece;
-		const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
-		ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
-
-		const FieldIndex field = square.asFieldIndex();
-		const Vector2 flippedField = is_flipped ? Vector2(7 - field.x, field.y) : Vector2(field.x, 7 - field.y);
-		pieces_canvas_item.add_texture_rect(Rect2(start_position + theme->get_square_size() * flippedField, square_size), *texture.ptr());
+				pieces_canvas_item.add_texture_rect(Rect2(get_square_position(square), square_size), *texture.ptr());
+			}
+		}
 	}
 
-	const real_t width = theme->get_square_size() / 16;
 	valid_hover_canvas_item.clear();
+	invalid_hover_canvas_item.clear();
 	if (!annotation_begin_square) {
 		if (highlighted_square) {
-			valid_hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
+			const Square square(FieldIndex(highlighted_square->x, 7 - highlighted_square->y));
+			const Square flippedSquare = is_flipped ? square.flip() : square;
+			if (valid_moves[flippedSquare].is_empty()) {
+				invalid_hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
+			} else {
+				valid_hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
+			}
 		}
 	}
 
@@ -217,8 +218,9 @@ void Chess2D::_draw() {
 	for (uint16_t annotation : annotations) {
 		const Square from(annotation % 64);
 		const Square to(annotation / 64);
-		// TODO: Handle flipped board
-		annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(from, to).ptr(), theme->get_annotation_transform(from, to));
+		const Square flippedFrom = is_flipped ? from.flip() : from;
+		const Square flippedTo = is_flipped ? to.flip() : to;
+		annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(flippedFrom, flippedTo).ptr(), theme->get_annotation_transform(flippedFrom, flippedTo));
 	}
 
 	if (annotation_begin_square && annotation_end_square) {
@@ -280,8 +282,8 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					if (annotation_end_square) {
 						const Square from(FieldIndex(annotation_begin_square->x, 7 - annotation_begin_square->y));
 						const Square to(FieldIndex(annotation_end_square->x, 7 - annotation_end_square->y));
-						// TODO: Handle flipped board
-						toggle_annotation(from, to);
+						toggle_annotation(is_flipped ? from.flip() : from, is_flipped ? to.flip() : to);
+						highlighted_square = annotation_end_square;
 						annotation_end_square.reset();
 					}
 					annotation_begin_square.reset();
@@ -295,11 +297,14 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 }
 
 String Chess2D::get_fen() const {
-	return this->fen;
+	const std::string &fen = phase4::engine::fen::PositionToFen::encode(session->position());
+	return String(fen.c_str());
 }
 
 void Chess2D::set_fen(const String &fen) {
-	this->fen = fen;
+	auto position = phase4::engine::fen::FenToPosition::parse(fen.ascii().get_data());
+	ERR_FAIL_COND_MSG(!position, "Invalid fen: " + fen);
+	session->setPosition(*position);
 }
 
 Ref<ChessTheme> Chess2D::get_theme() const {

@@ -189,10 +189,12 @@ public:
 
 	const Ref<Mesh> &get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to);
 
+	// The position as if the board is not centered, origin (0, 0)
 	Vector2 to_local(const phase4::engine::common::FieldIndex &field) const {
 		return godot::Vector2(field.x, 7 - field.y) * godot::Vector2(square_size, square_size);
 	}
 
+	// The position as if the board is centered
 	Vector2 to_global(const phase4::engine::common::FieldIndex &field) const {
 		return to_local(field) - godot::Vector2(1, 1) * square_size * 4;
 	}
@@ -272,7 +274,6 @@ public:
 		canvas_item.instantiate();
 
 		if (slide_hint_material.is_valid()) {
-			godot::UtilityFunctions::print("material valid!");
 			const godot::Ref<godot::ShaderMaterial> &material = slide_hint_material->duplicate();
 			material->set_shader_parameter("direction", direction);
 			canvas_item.set_material(material);
