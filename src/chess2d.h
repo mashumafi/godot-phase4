@@ -44,17 +44,17 @@ private:
 	CanvasItemUtil selected_canvas_item;
 	CanvasItemUtil annotations_canvas_item;
 
-	std::array<phase4::engine::common::FastVector<phase4::engine::moves::Move, 21>, 64> valid_moves;
+	phase4::engine::moves::Moves valid_moves;
+	std::array<phase4::engine::common::FastVector<phase4::engine::moves::Move, 21>, 64> valid_moves_map;
 
 	void compute_valid_moves() {
-		for (size_t i = 0; i < valid_moves.size(); ++i) {
-			valid_moves[i].clear();
+		for (size_t i = 0; i < valid_moves_map.size(); ++i) {
+			valid_moves_map[i].clear();
 		}
 
-		phase4::engine::moves::Moves moves;
-		phase4::engine::board::PositionMoves::getValidMoves(session->position(), moves);
-		for (size_t i = 0; i < moves.size(); ++i) {
-			valid_moves[moves[i].from()].push_back(moves[i]);
+		phase4::engine::board::PositionMoves::getValidMoves(session->position(), valid_moves);
+		for (size_t i = 0; i < valid_moves.size(); ++i) {
+			valid_moves_map[valid_moves[i].from()].push_back(valid_moves[i]);
 		}
 	}
 

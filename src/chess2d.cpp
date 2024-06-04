@@ -206,7 +206,7 @@ void Chess2D::_draw() {
 		if (highlighted_square) {
 			const Square square(FieldIndex(highlighted_square->x, 7 - highlighted_square->y));
 			const Square flippedSquare = is_flipped ? square.flip() : square;
-			if (valid_moves[flippedSquare].is_empty()) {
+			if (valid_moves_map[flippedSquare].is_empty()) {
 				invalid_hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
 			} else {
 				valid_hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
