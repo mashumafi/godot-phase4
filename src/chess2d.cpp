@@ -147,7 +147,7 @@ void Chess2D::_draw() {
 			const Square square(walls);
 			const Vector2 flip_offset = is_flipped ? square_size : Vector2(0, 0);
 			const Vector2 translation = get_square_position(square) + flip_offset;
-			const double time = Math::sin(Time::get_singleton()->get_ticks_msec() / 100.0);
+			const double time = Math::sin(Time::get_singleton()->get_ticks_msec() / 250.0);
 			const double scaledTime = Math::remap(time, -1, 1, .9, 1.0);
 			const Vector2 scale(scaledTime, scaledTime);
 			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
@@ -251,6 +251,12 @@ void Chess2D::_draw() {
 				}
 			}
 		}
+
+		selected_canvas_item.clear();
+		if (selected_square) {
+			const Square square(FieldIndex(selected_square->x, 7 - selected_square->y));
+			selected_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(get_square_position(square)));
+		}
 	}
 
 	if (draw_flags | DrawFlags::ANNOTATIONS) {
@@ -315,11 +321,38 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 
 	const Ref<InputEventMouseButton> mouse_button = event;
 	if (mouse_button.is_valid()) {
-		if (mouse_button->get_button_index() == MOUSE_BUTTON_RIGHT) {
-			const real_t offset = -theme->get_square_size() * 4;
-			const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
-			const Vector2 start_position = Vector2(offset, offset) + get_global_position();
-			const Vector2 mouse_square_transform = ((get_global_mouse_position() - start_position) / theme->get_square_size()).floor();
+		const real_t offset = -theme->get_square_size() * 4;
+		const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
+		const Vector2 start_position = Vector2(offset, offset) + get_global_position();
+		const Vector2 mouse_square_transform = ((get_global_mouse_position() - start_position) / theme->get_square_size()).floor();
+		if (mouse_button->get_button_index() == MOUSE_BUTTON_LEFT) {
+			if (mouse_button->is_pressed()) {
+				if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
+					const Square square(FieldIndex(mouse_square_transform.x, 7 - mouse_square_transform.y));
+					if (!valid_moves_map[square].is_empty()) {
+						if (selected_square) {
+							// TODO: Attempt to make a move based on the dropped square
+						}
+
+						selected_square = mouse_square_transform;
+
+						draw_flags |= DrawFlags::HIGHLIGHT;
+						queue_redraw();
+					}
+				} else {
+					selected_square.reset();
+					draw_flags |= DrawFlags::HIGHLIGHT;
+					queue_redraw();
+				}
+			} else {
+				if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
+					const Square square(FieldIndex(selected_square->x, 7 - selected_square->y));
+					if (!valid_moves_map[square].is_empty()) {
+						// TODO: Attempt to make a move based on the dropped square
+					}
+				}
+			}
+		} else if (mouse_button->get_button_index() == MOUSE_BUTTON_RIGHT) {
 			if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
 				if (mouse_button->is_pressed()) {
 					annotation_begin_square = mouse_square_transform;
