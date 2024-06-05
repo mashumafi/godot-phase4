@@ -1,4 +1,4 @@
-[gd_resource type="ChessTheme" load_steps=14 format=3 uid="uid://ckvvdwkbps6g1"]
+[gd_resource type="ChessTheme" load_steps=15 format=3 uid="uid://ckvvdwkbps6g1"]
 
 [ext_resource type="Texture2D" uid="uid://0xqslhvpf4i1" path="res://Textures/UI/BlackRook.svg" id="1_00yef"]
 [ext_resource type="Texture2D" uid="uid://bv3v8rlelr7t" path="res://Textures/UI/BlackPawn.svg" id="1_nuhi5"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://5r4m2r8lsmid" path="res://Textures/UI/WhiteQueen.svg" id="2_f05bj"]
 [ext_resource type="Texture2D" uid="uid://bqlidby262p4g" path="res://Textures/UI/BlackKnight.svg" id="3_jpalm"]
 [ext_resource type="Texture2D" uid="uid://bnc8vy23wcnep" path="res://Textures/UI/BlackQueen.svg" id="5_s7klo"]
+[ext_resource type="Texture2D" uid="uid://nnnsuo17gtdb" path="res://Textures/Flourish.svg" id="6_0iiih"]
 [ext_resource type="FontFile" uid="uid://buykajmt4o4yo" path="res://Fonts/GrotesqueItalic.ttf" id="6_8ylho"]
 [ext_resource type="Texture2D" uid="uid://cc3jhai8laitu" path="res://Textures/UI/WhiteBishop.svg" id="6_igk2j"]
 [ext_resource type="Material" uid="uid://b1l5ywkprkcgn" path="res://Shaders/SlideHint.material" id="7_2if8f"]
@@ -33,3 +34,4 @@ square_size = 225.0
 font = ExtResource("6_8ylho")
 annotation_color = Color(0, 0.517647, 0.811765, 0.729412)
 slide_hint_material = ExtResource("7_2if8f")
+flourish = ExtResource("6_0iiih")

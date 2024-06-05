@@ -19,6 +19,18 @@ namespace godot {
 class Chess2D : public Node2D {
 	GDCLASS(Chess2D, Node2D)
 
+	enum DrawFlags : int64_t {
+		NONE = 0,
+		FLOURISH = 0b1,
+		SQUARES = 0b10,
+		PIECES = 0b100,
+		ANNOTATIONS = 0b1000,
+		HIGHLIGHT = 0b10000,
+		BOARD = 0b110,
+		ALL = 0b11111,
+	};
+	int64_t draw_flags = DrawFlags::ALL;
+
 private:
 	String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	Ref<ChessTheme> theme = nullptr;
@@ -37,6 +49,7 @@ private:
 	CanvasItemUtil up_slide_hint_canvas_item;
 	CanvasItemUtil left_slide_hint_canvas_item;
 	CanvasItemUtil down_slide_hint_canvas_item;
+	CanvasItemUtil flourish_canvas_item;
 	CanvasItemUtil file_rank_canvas_item;
 	CanvasItemUtil pieces_canvas_item;
 	CanvasItemUtil valid_hover_canvas_item;

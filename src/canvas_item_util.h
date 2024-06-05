@@ -67,7 +67,7 @@ public:
 	inline void add_texture_rect(const godot::Rect2 &rect, const godot::Texture &texture, bool tile = false, const godot::Color &modulate = godot::Color(1, 1, 1, 1), bool transpose = false) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
-		godot::RenderingServer::get_singleton()->canvas_item_add_texture_rect(canvas_item, rect, texture.get_rid());
+		godot::RenderingServer::get_singleton()->canvas_item_add_texture_rect(canvas_item, rect, texture.get_rid(), tile, modulate, transpose);
 	}
 
 	inline void add_mesh(const godot::Mesh &mesh, const godot::Transform2D &transform = godot::Transform2D(), const godot::Color &modulate = godot::Color(1, 1, 1, 1)) const {

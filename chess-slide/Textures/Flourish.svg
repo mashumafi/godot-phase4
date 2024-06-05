@@ -25,14 +25,15 @@
      inkscape:document-units="px"
      showgrid="false"
      inkscape:zoom="1.1487896"
-     inkscape:cx="252.87486"
-     inkscape:cy="187.15351"
+     inkscape:cx="178.88393"
+     inkscape:cy="187.1535"
      inkscape:window-width="1352"
-     inkscape:window-height="844"
+     inkscape:window-height="720"
      inkscape:window-x="0"
-     inkscape:window-y="34"
+     inkscape:window-y="35"
      inkscape:window-maximized="0"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="layer1"
+     showguides="true" />
   <defs
      id="defs2">
     <inkscape:path-effect
@@ -294,7 +295,7 @@
      id="layer1">
     <g
        id="g1670"
-       transform="translate(-61.203161)">
+       transform="translate(-61.203161,-2.512185)">
       <g
          id="g1606"
          transform="matrix(-1,0,0,1,180.19101,0)">
