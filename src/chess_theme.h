@@ -49,6 +49,9 @@ private:
 	std::array<Ref<Mesh>, 64> annotation_meshes;
 	Color annotation_color;
 
+	Ref<Texture> flourish;
+	Ref<Mesh> flourish_mesh;
+
 	Ref<Mesh> highlight_mesh;
 
 protected:
@@ -187,6 +190,12 @@ public:
 
 	void set_annotation_color(Color color);
 
+	Ref<Texture> get_flourish() const {
+		return flourish;
+	}
+
+	void set_flourish(const Ref<Texture> &texture);
+
 	const Ref<Mesh> &get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to);
 
 	// The position as if the board is not centered, origin (0, 0)
@@ -267,6 +276,10 @@ public:
 
 	void set_slide_hint_material(const Ref<godot::ShaderMaterial> &material) {
 		this->slide_hint_material = material;
+	}
+
+	const Mesh &get_flourish_mesh() const {
+		return *flourish_mesh.ptr();
 	}
 
 	CanvasItemUtil slide_hint_canvas_item_create(const Vector2 &direction) {

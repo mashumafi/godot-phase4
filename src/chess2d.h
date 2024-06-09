@@ -19,8 +19,20 @@ namespace godot {
 class Chess2D : public Node2D {
 	GDCLASS(Chess2D, Node2D)
 
+	enum DrawFlags : int64_t {
+		NONE = 0,
+		FLOURISH = 0b1,
+		SQUARES = 0b10,
+		PIECES = 0b100,
+		ANNOTATIONS = 0b1000,
+		HIGHLIGHT = 0b10000,
+
+		BOARD = 0b110,
+		ALL = 0b11111,
+	};
+	int64_t draw_flags = DrawFlags::ALL;
+
 private:
-	String fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	Ref<ChessTheme> theme = nullptr;
 	bool is_flipped = false;
 
@@ -30,13 +42,14 @@ private:
 	std::optional<Vector2i> annotation_end_square;
 	std::unordered_set<uint16_t> annotations;
 
-	std::unique_ptr<phase4::engine::board::Session> session;
+	phase4::engine::board::Session session;
 
 	CanvasItemUtil squares_canvas_item;
 	CanvasItemUtil right_slide_hint_canvas_item;
 	CanvasItemUtil up_slide_hint_canvas_item;
 	CanvasItemUtil left_slide_hint_canvas_item;
 	CanvasItemUtil down_slide_hint_canvas_item;
+	CanvasItemUtil flourish_canvas_item;
 	CanvasItemUtil file_rank_canvas_item;
 	CanvasItemUtil pieces_canvas_item;
 	CanvasItemUtil valid_hover_canvas_item;
@@ -48,11 +61,12 @@ private:
 	std::array<phase4::engine::common::FastVector<phase4::engine::moves::Move, 21>, 64> valid_moves_map;
 
 	void compute_valid_moves() {
+		valid_moves.clear();
 		for (size_t i = 0; i < valid_moves_map.size(); ++i) {
 			valid_moves_map[i].clear();
 		}
 
-		phase4::engine::board::PositionMoves::getValidMoves(session->position(), valid_moves);
+		phase4::engine::board::PositionMoves::getValidMoves(session.position(), valid_moves);
 		for (size_t i = 0; i < valid_moves.size(); ++i) {
 			valid_moves_map[valid_moves[i].from()].push_back(valid_moves[i]);
 		}
@@ -86,8 +100,39 @@ public:
 		const real_t offset = -theme->get_square_size() * 4;
 		const Vector2 start_position(offset, offset);
 
-		const FieldIndex field = (is_flipped ? square.flip() : square).asFieldIndex();
+		const FieldIndex field = (is_flipped ? square.flipped() : square).asFieldIndex();
 		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y);
+	}
+
+	std::optional<phase4::engine::common::Square> get_selected() {
+		using namespace phase4::engine::common;
+
+		if (!selected_square) {
+			return {};
+		}
+
+		Square square(FieldIndex(selected_square->x, 7 - selected_square->y));
+
+		return is_flipped ? square.flipped() : square;
+	}
+
+	Vector2 get_mouse_coordinate() const {
+		const real_t offset = -theme->get_square_size() * 4;
+		const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
+		const Vector2 start_position = Vector2(offset, offset) + get_global_position();
+		return (get_global_mouse_position() - start_position) / theme->get_square_size();
+	}
+
+	std::optional<phase4::engine::common::Square> get_mouse_square() const {
+		using namespace phase4::engine::common;
+
+		const Vector2i mouse_coordinate = get_mouse_coordinate();
+		if (!Rect2(0, 0, 8, 8).has_point(mouse_coordinate)) {
+			return {};
+		}
+
+		const Square square(FieldIndex(mouse_coordinate.x, 7 - mouse_coordinate.y));
+		return is_flipped ? square.flipped() : square;
 	}
 
 	void toggle_annotation(phase4::engine::common::Square from, phase4::engine::common::Square to) {

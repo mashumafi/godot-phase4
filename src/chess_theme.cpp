@@ -115,6 +115,57 @@ static Ref<Mesh> create_hollow_square_polygon(real_t square_size, real_t width) 
 
 	return create_strip_mesh(squarePolygon);
 }
+
+static Ref<Mesh> create_centered_square_polygon(real_t square_size) {
+	using namespace phase4::engine::common;
+
+	const Color color = Color::hex(0xFFFFFFFF); // WHITE
+
+	Ref<ArrayMesh> mesh;
+	mesh.instantiate();
+
+	Array mesh_arrays;
+	mesh_arrays.resize(Mesh::ARRAY_MAX);
+
+	PackedVector2Array vertices;
+	vertices.resize(4);
+	vertices[0] = Vector2(-square_size, -square_size);
+	vertices[1] = Vector2(square_size, -square_size);
+	vertices[2] = Vector2(square_size, square_size);
+	vertices[3] = Vector2(-square_size, square_size);
+	mesh_arrays[Mesh::ARRAY_VERTEX] = vertices;
+
+	PackedVector2Array uvs;
+	uvs.resize(4);
+	uvs[0] = Vector2(0, 0);
+	uvs[1] = Vector2(1, 0);
+	uvs[2] = Vector2(1, 1);
+	uvs[3] = Vector2(0, 1);
+	mesh_arrays[Mesh::ARRAY_TEX_UV] = uvs;
+
+	PackedColorArray colors;
+	colors.resize(vertices.size());
+	colors.fill(color);
+	mesh_arrays[Mesh::ARRAY_COLOR] = colors;
+
+	PackedVector3Array normals;
+	normals.resize(vertices.size());
+	mesh_arrays[Mesh::ARRAY_NORMAL] = normals;
+
+	PackedInt32Array indices;
+	indices.resize(6);
+	indices.push_back(0);
+	indices.push_back(1);
+	indices.push_back(2);
+	indices.push_back(2);
+	indices.push_back(3);
+	indices.push_back(0);
+	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
+
+	mesh->add_surface_from_arrays(Mesh::PrimitiveType::PRIMITIVE_TRIANGLES, mesh_arrays);
+
+	return mesh;
+}
 } //namespace
 
 void ChessTheme::_bind_methods() {
@@ -281,6 +332,15 @@ void ChessTheme::_bind_methods() {
 		ClassDB::bind_method(D_METHOD(set_slide_hint_material_method, slide_hint_material_property), &ChessTheme::set_slide_hint_material);
 		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, slide_hint_material_property, PROPERTY_HINT_NONE), set_slide_hint_material_method, get_slide_hint_material_method);
 	}
+
+	{ // Florish
+		const StringName get_flourish_method = "get_flourish";
+		const StringName set_flourish_method = "set_flourish";
+		const StringName flourish_property = "flourish";
+		ClassDB::bind_method(D_METHOD(get_flourish_method), &ChessTheme::get_flourish);
+		ClassDB::bind_method(D_METHOD(set_flourish_method, flourish_property), &ChessTheme::set_flourish);
+		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, flourish_property, PROPERTY_HINT_NONE), set_flourish_method, get_flourish_method);
+	}
 }
 
 const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to) {
@@ -314,4 +374,9 @@ void ChessTheme::set_square_size(real_t size) {
 
 void ChessTheme::set_annotation_color(Color color) {
 	this->annotation_color = color;
+}
+
+void ChessTheme::set_flourish(const Ref<Texture> &texture) {
+	flourish = texture;
+	flourish_mesh = create_centered_square_polygon(square_size);
 }
