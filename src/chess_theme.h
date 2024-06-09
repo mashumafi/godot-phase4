@@ -278,7 +278,7 @@ public:
 		this->slide_hint_material = material;
 	}
 
-	const Mesh& get_flourish_mesh() const {
+	const Mesh &get_flourish_mesh() const {
 		return *flourish_mesh.ptr();
 	}
 

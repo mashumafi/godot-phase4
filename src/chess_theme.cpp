@@ -116,7 +116,6 @@ static Ref<Mesh> create_hollow_square_polygon(real_t square_size, real_t width) 
 	return create_strip_mesh(squarePolygon);
 }
 
-
 static Ref<Mesh> create_centered_square_polygon(real_t square_size) {
 	using namespace phase4::engine::common;
 
@@ -138,10 +137,10 @@ static Ref<Mesh> create_centered_square_polygon(real_t square_size) {
 
 	PackedVector2Array uvs;
 	uvs.resize(4);
-    uvs[0] = Vector2(0, 0);
-    uvs[1] = Vector2(1, 0);
-    uvs[2] = Vector2(1, 1);
-    uvs[3] = Vector2(0, 1);
+	uvs[0] = Vector2(0, 0);
+	uvs[1] = Vector2(1, 0);
+	uvs[2] = Vector2(1, 1);
+	uvs[3] = Vector2(0, 1);
 	mesh_arrays[Mesh::ARRAY_TEX_UV] = uvs;
 
 	PackedColorArray colors;
@@ -154,13 +153,13 @@ static Ref<Mesh> create_centered_square_polygon(real_t square_size) {
 	mesh_arrays[Mesh::ARRAY_NORMAL] = normals;
 
 	PackedInt32Array indices;
-    indices.resize(6);
-    indices.push_back(0);
-    indices.push_back(1);
-    indices.push_back(2);
-    indices.push_back(2);
-    indices.push_back(3);
-    indices.push_back(0);
+	indices.resize(6);
+	indices.push_back(0);
+	indices.push_back(1);
+	indices.push_back(2);
+	indices.push_back(2);
+	indices.push_back(3);
+	indices.push_back(0);
 	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
 
 	mesh->add_surface_from_arrays(Mesh::PrimitiveType::PRIMITIVE_TRIANGLES, mesh_arrays);
@@ -378,6 +377,6 @@ void ChessTheme::set_annotation_color(Color color) {
 }
 
 void ChessTheme::set_flourish(const Ref<Texture> &texture) {
-    flourish = texture;
-    flourish_mesh = create_centered_square_polygon(square_size);
+	flourish = texture;
+	flourish_mesh = create_centered_square_polygon(square_size);
 }

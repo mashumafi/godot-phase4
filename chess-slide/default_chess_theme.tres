@@ -1,7 +1,8 @@
-[gd_resource type="ChessTheme" load_steps=15 format=3 uid="uid://ckvvdwkbps6g1"]
+[gd_resource type="ChessTheme" load_steps=16 format=3 uid="uid://ckvvdwkbps6g1"]
 
 [ext_resource type="Texture2D" uid="uid://0xqslhvpf4i1" path="res://Textures/UI/BlackRook.svg" id="1_00yef"]
 [ext_resource type="Texture2D" uid="uid://bv3v8rlelr7t" path="res://Textures/UI/BlackPawn.svg" id="1_nuhi5"]
+[ext_resource type="Texture2D" uid="uid://divasf4uo30im" path="res://Textures/UI/BlackBishop.svg" id="1_w0o2f"]
 [ext_resource type="Texture2D" uid="uid://ca44vmmucmqqq" path="res://Textures/UI/BlackKing.svg" id="2_adfsg"]
 [ext_resource type="Texture2D" uid="uid://5r4m2r8lsmid" path="res://Textures/UI/WhiteQueen.svg" id="2_f05bj"]
 [ext_resource type="Texture2D" uid="uid://bqlidby262p4g" path="res://Textures/UI/BlackKnight.svg" id="3_jpalm"]
@@ -24,7 +25,7 @@ white_queen_texture = ExtResource("2_f05bj")
 white_king_texture = ExtResource("7_80gy2")
 black_pawn_texture = ExtResource("1_nuhi5")
 black_knight_texture = ExtResource("3_jpalm")
-black_bishop_texture = ExtResource("1_00yef")
+black_bishop_texture = ExtResource("1_w0o2f")
 black_rook_texture = ExtResource("1_00yef")
 black_queen_texture = ExtResource("5_s7klo")
 black_king_texture = ExtResource("2_adfsg")
