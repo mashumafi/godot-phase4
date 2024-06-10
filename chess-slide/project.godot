@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="godot cpp template"
+config/name="Chess Slide"
 run/main_scene="res://example.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
@@ -25,3 +25,7 @@ window/stretch/aspect="expand"
 [dotnet]
 
 project/assembly_name="godot cpp template"
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
