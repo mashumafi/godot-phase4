@@ -165,6 +165,23 @@ void Chess2D::_draw() {
 	const real_t offset = -theme->get_square_size() * 4;
 	const Vector2 start_position(offset, offset);
 
+	if (draw_flags | DrawFlags::FLOURISH) {
+		flourish_canvas_item.clear();
+		const Bitboard walls = session.position().walls();
+		if (walls != 0) {
+			const Square square(walls);
+			const Vector2 flip_offset = is_flipped ? square_size : Vector2(0, 0);
+			const Vector2 translation = get_square_position(square) + flip_offset;
+			const double time = Math::sin(Time::get_singleton()->get_ticks_msec() / 250.0);
+			const double scaledTime = Math::remap(time, -1, 1, .9, 1.0);
+			const Vector2 scale(scaledTime, scaledTime);
+			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
+			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).rotated(Math_PI / 2).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
+			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).rotated(Math_PI).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
+			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).rotated(3 * Math_PI / 2).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
+		}
+	}
+
 	if (draw_flags | DrawFlags::SQUARES) {
 		squares_canvas_item.clear();
 
@@ -186,23 +203,6 @@ void Chess2D::_draw() {
 			}
 
 			squares_canvas_item.add_rect(Rect2(get_square_position(flippedSquare), square_size), color);
-		}
-	}
-
-	if (draw_flags | DrawFlags::FLOURISH) {
-		flourish_canvas_item.clear();
-		const Bitboard walls = session.position().walls();
-		if (walls != 0) {
-			const Square square(walls);
-			const Vector2 flip_offset = is_flipped ? square_size : Vector2(0, 0);
-			const Vector2 translation = get_square_position(square) + flip_offset;
-			const double time = Math::sin(Time::get_singleton()->get_ticks_msec() / 250.0);
-			const double scaledTime = Math::remap(time, -1, 1, .9, 1.0);
-			const Vector2 scale(scaledTime, scaledTime);
-			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
-			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).rotated(Math_PI / 2).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
-			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).rotated(Math_PI).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
-			flourish_canvas_item.add_mesh(theme->get_flourish_mesh(), Transform2D().scaled(scale).rotated(3 * Math_PI / 2).translated(translation), Color("WHITE"), *theme->get_flourish().ptr());
 		}
 	}
 
@@ -379,18 +379,18 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 						const Move move(*from, *to, MoveFlags::QUIET);
 						auto realMove = phase4::engine::board::PositionMoves::findRealMove(session.position(), move);
 						if (realMove) {
+							clear_offsets();
 							const phase4::engine::board::PositionMoves::MakeMoveResult &result = session.makeMove(*realMove);
 							if (result.slide) {
-								auto fixedSlide = FieldIndex(result.slide->x, -result.slide->y);
-								auto slideTo = Square(fixedSlide + to->asFieldIndex());
-								auto slideFrom = Square(fixedSlide + from->asFieldIndex());
+								const FieldIndex fixedSlide(result.slide->x, -result.slide->y);
+								const Square slideTo = Square(fixedSlide + to->asFieldIndex());
 								piece_offsets[slideTo] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
 
 								Bitboard walls = session.position().walls();
 								while (walls > 0) {
 									const Square wall(Square(walls).asFieldIndex() + fixedSlide);
 									walls = walls.popLsb();
-									square_offsets[wall] = Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
+									square_offsets[wall] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
 								}
 							} else {
 								piece_offsets[result.moved[0].to] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
