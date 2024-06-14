@@ -461,13 +461,9 @@ BatchMultiMesh<2> ChessTheme::create_circle() {
 	BatchMultiMesh<2> batch;
 	const real_t radius = square_size / 7.0f;
 	batch.set_transform_format(MultiMesh::TRANSFORM_2D);
-	batch.set_instance_count(64);
+	batch.set_instance_count(21);
 	batch.set_visible_instance_count(0);
 	batch.set_meshes({ create_circle_polygon(radius), create_ring_polygon(radius, radius + 1.25, WHITE_TRANSPARENT, WHITE) });
 
-	for (int32_t instance = 0; instance < 64; ++instance) {
-		batch.set_instance_transform_2d(instance, Transform2D());
-		batch.set_instance_color(instance, WHITE);
-	}
 	return batch;
 }

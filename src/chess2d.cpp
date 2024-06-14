@@ -89,8 +89,8 @@ void Chess2D::_ready() {
 	circle_meshes = theme->create_circle();
 	valid_moves_circles_canvas_item.instantiate();
 	valid_moves_circles_canvas_item.set_parent(get_canvas_item());
-	valid_moves_circles_canvas_item.set_self_modulate(Color::hex(0x77777715));
-	valid_moves_circles_canvas_item.set_transform(godot::Transform2D().translated(start_position + half_square));
+	valid_moves_circles_canvas_item.set_self_modulate(Color::hex(0x77777799));
+	valid_moves_circles_canvas_item.set_transform(godot::Transform2D().translated(half_square));
 
 	valid_hover_canvas_item.instantiate();
 	valid_hover_canvas_item.set_parent(get_canvas_item());
@@ -191,6 +191,7 @@ void Chess2D::_draw() {
 
 	if (draw_flags & DrawFlags::SQUARES) {
 		squares_canvas_item.clear();
+		size_t circle_count = 0;
 
 		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
 			const Square flippedSquare = is_flipped ? square.flipped() : square;
@@ -205,11 +206,21 @@ void Chess2D::_draw() {
 				const Move move(*from, flippedSquare, MoveFlags::QUIET);
 				const std::optional<Move> &realMove = PositionMoves::findRealMove(session.position(), move);
 				color = realMove ? color : color.darkened(.15);
+				if (realMove) {
+					circle_meshes.set_instance_transform_2d(circle_count, Transform2D().translated(get_square_position(flippedSquare)));
+					++circle_count;
+				}
 			} else {
 				color = color.darkened(.15);
 			}
 
 			squares_canvas_item.add_rect(Rect2(get_square_position(flippedSquare), square_size), color);
+		}
+
+		valid_moves_circles_canvas_item.clear();
+		if (circle_count > 0) {
+			circle_meshes.set_visible_instance_count(circle_count);
+			circle_meshes.add_multimesh(*valid_moves_circles_canvas_item);
 		}
 	}
 
@@ -302,9 +313,6 @@ void Chess2D::_draw() {
 			}
 		}
 	}
-
-	circle_meshes.set_visible_instance_count(1);
-	circle_meshes.add_multimesh(*valid_moves_circles_canvas_item);
 
 	if (draw_flags & DrawFlags::HIGHLIGHT) {
 		valid_hover_canvas_item.clear();
@@ -428,7 +436,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					} else {
 						selected_square = mouse_square_transform;
 
-						draw_flags |= DrawFlags::HIGHLIGHT;
+						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::SQUARES;
 						queue_redraw();
 					}
 				} else {
