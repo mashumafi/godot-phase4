@@ -9,9 +9,10 @@
 using namespace godot;
 
 namespace {
-static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices) {
-	const Color color = Color::hex(0xFFFFFFFF); // WHITE
+const Color WHITE = Color::hex(0xFFFFFFFF);
+const Color WHITE_TRANSPARENT = Color::hex(0xFFFFFF00);
 
+static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices, const Color &evenColor = WHITE, const Color &oddColor = WHITE) {
 	Ref<ArrayMesh> mesh;
 	mesh.instantiate();
 
@@ -26,7 +27,10 @@ static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices) {
 
 	PackedColorArray colors;
 	colors.resize(vertices.size());
-	colors.fill(color);
+	Color *colors_prt = colors.ptrw();
+	for (size_t i = 0; i < colors.size(); ++i) {
+		colors_prt[i] = i % 2 == 0 ? evenColor : oddColor;
+	}
 	mesh_arrays[Mesh::ARRAY_COLOR] = colors;
 
 	PackedVector3Array normals;
@@ -34,8 +38,10 @@ static Ref<Mesh> create_strip_mesh(const PackedVector2Array &vertices) {
 	mesh_arrays[Mesh::ARRAY_NORMAL] = normals;
 
 	PackedInt32Array indices;
+	indices.resize(vertices.size());
+	int32_t *indices_ptr = indices.ptrw();
 	for (size_t i = 0; i < vertices.size(); ++i) {
-		indices.push_back(i);
+		indices_ptr[i] = i;
 	}
 	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
 
@@ -60,34 +66,88 @@ static Ref<Mesh> create_arrow_polygon(real_t square_size, godot::Vector2i target
 
 	PackedVector2Array polygon;
 	polygon.resize(7);
-	polygon[0] = adjusted_begin + top;
-	polygon[1] = adjusted_begin + bottom;
-	polygon[2] = adjusted_end + top;
-	polygon[3] = adjusted_end + bottom;
-	polygon[4] = adjusted_end + Vector2(0, -square_size / 4).rotated(angle);
-	polygon[5] = adjusted_end + Vector2(square_size / 4, 0).rotated(angle);
-	polygon[6] = adjusted_end + Vector2(0, square_size / 4).rotated(angle);
+	Vector2 *polygon_ptr = polygon.ptrw();
+	polygon_ptr[0] = adjusted_begin + top;
+	polygon_ptr[1] = adjusted_begin + bottom;
+	polygon_ptr[2] = adjusted_end + top;
+	polygon_ptr[3] = adjusted_end + bottom;
+	polygon_ptr[4] = adjusted_end + Vector2(0, -square_size / 4).rotated(angle);
+	polygon_ptr[5] = adjusted_end + Vector2(square_size / 4, 0).rotated(angle);
+	polygon_ptr[6] = adjusted_end + Vector2(0, square_size / 4).rotated(angle);
 
 	return create_strip_mesh(polygon);
 }
 
-static Ref<Mesh> create_circle_polygon(real_t square_size) {
+static Ref<Mesh> create_ring_polygon(const real_t innerRadius, const real_t &outterRadius, const Color &oddColor = WHITE, const Color &evenColor = WHITE) {
 	using namespace phase4::engine::common;
 
-	const size_t size = 32;
-	const real_t delta = Math_TAU / (size - 1);
+	const size_t size = 65;
+	const real_t circle_point_step = Math_TAU / (size - 1);
 
-	const Vector2 outterRadius(square_size / 2.0f * .9f, 0);
-	const Vector2 innerRadius(square_size / 2.0f * .8f, 0);
-
-	PackedVector2Array circlePolygon;
-	circlePolygon.resize(size * 2);
+	PackedVector2Array circle_polygon;
+	circle_polygon.resize(size * 2);
+	Vector2 *circle_polygon_ptr = circle_polygon.ptrw();
 	for (size_t r = 0; r < size; ++r) {
-		circlePolygon[r * 2] = outterRadius.rotated(r * delta);
-		circlePolygon[r * 2 + 1] = innerRadius.rotated(r * delta);
+		const real_t angle = r * circle_point_step;
+		circle_polygon_ptr[r * 2 + 0] = Vector2(outterRadius, 0).rotated(angle);
+		circle_polygon_ptr[r * 2 + 1] = Vector2(innerRadius, 0).rotated(angle);
 	}
 
-	return create_strip_mesh(circlePolygon);
+	return create_strip_mesh(circle_polygon, oddColor, evenColor);
+}
+
+static Ref<Mesh> create_circle_polygon(const real_t radius) {
+	static const int circle_segments = 64;
+
+	PackedInt32Array indices;
+	PackedVector2Array points;
+
+	points.resize(circle_segments + 2);
+	Vector2 *points_ptr = points.ptrw();
+
+	// Store circle center in the last point.
+	points_ptr[circle_segments + 1] = Vector2(0, 0);
+
+	const real_t circle_point_step = Math_TAU / circle_segments;
+
+	for (int i = 0; i < circle_segments + 1; i++) {
+		const real_t angle = i * circle_point_step;
+		points_ptr[i] = Vector2(radius, 0).rotated(angle);
+	}
+
+	indices.resize(circle_segments * 3);
+	int *indices_ptr = indices.ptrw();
+
+	for (int i = 0; i < circle_segments; i++) {
+		indices_ptr[i * 3 + 0] = circle_segments + 1;
+		indices_ptr[i * 3 + 1] = i;
+		indices_ptr[i * 3 + 2] = i + 1;
+	}
+
+	PackedColorArray color;
+	color.resize(points.size());
+	color.fill(WHITE);
+
+	Ref<ArrayMesh> mesh;
+	mesh.instantiate();
+
+	Array mesh_arrays;
+	mesh_arrays.resize(Mesh::ARRAY_MAX);
+
+	PackedVector3Array normals;
+	normals.resize(points.size());
+
+	PackedVector2Array uvs;
+	uvs.resize(points.size());
+
+	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
+	mesh_arrays[Mesh::ARRAY_VERTEX] = points;
+	mesh_arrays[Mesh::ARRAY_TEX_UV] = uvs;
+	mesh_arrays[Mesh::ARRAY_COLOR] = color;
+	mesh_arrays[Mesh::ARRAY_NORMAL] = normals;
+
+	mesh->add_surface_from_arrays(Mesh::PrimitiveType::PRIMITIVE_TRIANGLES, mesh_arrays);
+	return mesh;
 }
 
 static Ref<Mesh> create_hollow_square_polygon(real_t square_size, real_t width) {
@@ -96,30 +156,29 @@ static Ref<Mesh> create_hollow_square_polygon(real_t square_size, real_t width) 
 	const Rect2 outterRect(0, 0, square_size, square_size);
 	const Rect2 innerRect = outterRect.grow(square_size * width);
 
-	PackedVector2Array squarePolygon;
-	squarePolygon.resize(10);
+	PackedVector2Array square_polygon;
+	square_polygon.resize(10);
+	Vector2 *square_polygon_ptr = square_polygon.ptrw();
 
-	squarePolygon[0] = outterRect.get_position();
-	squarePolygon[1] = innerRect.get_position();
-	squarePolygon[2] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y);
-	squarePolygon[3] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y);
+	square_polygon_ptr[0] = outterRect.get_position();
+	square_polygon_ptr[1] = innerRect.get_position();
+	square_polygon_ptr[2] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y);
+	square_polygon_ptr[3] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y);
 
-	squarePolygon[4] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y + outterRect.get_size().y);
-	squarePolygon[5] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y + innerRect.get_size().y);
+	square_polygon_ptr[4] = Vector2(outterRect.get_position().x + outterRect.get_size().x, outterRect.get_position().y + outterRect.get_size().y);
+	square_polygon_ptr[5] = Vector2(innerRect.get_position().x + innerRect.get_size().x, innerRect.get_position().y + innerRect.get_size().y);
 
-	squarePolygon[6] = Vector2(outterRect.get_position().x, outterRect.get_position().y + outterRect.get_size().y);
-	squarePolygon[7] = Vector2(innerRect.get_position().x, innerRect.get_position().y + innerRect.get_size().y);
+	square_polygon_ptr[6] = Vector2(outterRect.get_position().x, outterRect.get_position().y + outterRect.get_size().y);
+	square_polygon_ptr[7] = Vector2(innerRect.get_position().x, innerRect.get_position().y + innerRect.get_size().y);
 
-	squarePolygon[8] = outterRect.get_position();
-	squarePolygon[9] = innerRect.get_position();
+	square_polygon_ptr[8] = outterRect.get_position();
+	square_polygon_ptr[9] = innerRect.get_position();
 
-	return create_strip_mesh(squarePolygon);
+	return create_strip_mesh(square_polygon);
 }
 
 static Ref<Mesh> create_centered_square_polygon(real_t square_size) {
 	using namespace phase4::engine::common;
-
-	const Color color = Color::hex(0xFFFFFFFF); // WHITE
 
 	Ref<ArrayMesh> mesh;
 	mesh.instantiate();
@@ -129,23 +188,25 @@ static Ref<Mesh> create_centered_square_polygon(real_t square_size) {
 
 	PackedVector2Array vertices;
 	vertices.resize(4);
-	vertices[0] = Vector2(-square_size, -square_size);
-	vertices[1] = Vector2(square_size, -square_size);
-	vertices[2] = Vector2(square_size, square_size);
-	vertices[3] = Vector2(-square_size, square_size);
+	Vector2 *vertices_ptr = vertices.ptrw();
+	vertices_ptr[0] = Vector2(-square_size, -square_size) / 2.0;
+	vertices_ptr[1] = Vector2(square_size, -square_size) / 2.0;
+	vertices_ptr[2] = Vector2(square_size, square_size) / 2.0;
+	vertices_ptr[3] = Vector2(-square_size, square_size) / 2.0;
 	mesh_arrays[Mesh::ARRAY_VERTEX] = vertices;
 
 	PackedVector2Array uvs;
 	uvs.resize(4);
-	uvs[0] = Vector2(0, 0);
-	uvs[1] = Vector2(1, 0);
-	uvs[2] = Vector2(1, 1);
-	uvs[3] = Vector2(0, 1);
+	Vector2 *uvs_ptr = uvs.ptrw();
+	uvs_ptr[0] = Vector2(0, 0);
+	uvs_ptr[1] = Vector2(1, 0);
+	uvs_ptr[2] = Vector2(1, 1);
+	uvs_ptr[3] = Vector2(0, 1);
 	mesh_arrays[Mesh::ARRAY_TEX_UV] = uvs;
 
 	PackedColorArray colors;
 	colors.resize(vertices.size());
-	colors.fill(color);
+	colors.fill(WHITE);
 	mesh_arrays[Mesh::ARRAY_COLOR] = colors;
 
 	PackedVector3Array normals;
@@ -154,12 +215,13 @@ static Ref<Mesh> create_centered_square_polygon(real_t square_size) {
 
 	PackedInt32Array indices;
 	indices.resize(6);
-	indices.push_back(0);
-	indices.push_back(1);
-	indices.push_back(2);
-	indices.push_back(2);
-	indices.push_back(3);
-	indices.push_back(0);
+	int32_t *indices_ptr = indices.ptrw();
+	indices_ptr[0] = 0;
+	indices_ptr[1] = 1;
+	indices_ptr[2] = 2;
+	indices_ptr[3] = 2;
+	indices_ptr[4] = 3;
+	indices_ptr[5] = 0;
 	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
 
 	mesh->add_surface_from_arrays(Mesh::PrimitiveType::PRIMITIVE_TRIANGLES, mesh_arrays);
@@ -368,7 +430,10 @@ void ChessTheme::set_square_size(real_t size) {
 	annotation_meshes.fill(nullptr);
 
 	ERR_FAIL_COND(square_size <= 0);
-	annotation_meshes[Square::A1.get_raw_value()] = create_circle_polygon(square_size);
+
+	const double innerRadius = square_size / 2.0f * .8f;
+	const double outterRadius = square_size / 2.0f * .9f;
+	annotation_meshes[Square::A1.get_raw_value()] = create_ring_polygon(innerRadius, outterRadius, Color::hex(0xFFFFFF00), Color::hex(0xFFFF00FF));
 	highlight_mesh = create_hollow_square_polygon(square_size, -.05);
 }
 
@@ -378,5 +443,31 @@ void ChessTheme::set_annotation_color(Color color) {
 
 void ChessTheme::set_flourish(const Ref<Texture> &texture) {
 	flourish = texture;
-	flourish_mesh = create_centered_square_polygon(square_size);
+	flourish_mesh = create_centered_square_polygon(square_size * 2);
+}
+
+Ref<MultiMesh> ChessTheme::get_square_mesh() const {
+	Ref<MultiMesh> mesh;
+	mesh.instantiate();
+	mesh->set_use_colors(true);
+	mesh->set_transform_format(MultiMesh::TRANSFORM_2D);
+	mesh->set_instance_count(64);
+	mesh->set_visible_instance_count(0);
+	mesh->set_mesh(create_centered_square_polygon(square_size));
+	return mesh;
+}
+
+BatchMultiMesh<2> ChessTheme::create_circle() {
+	BatchMultiMesh<2> batch;
+	const real_t radius = square_size / 7.0f;
+	batch.set_transform_format(MultiMesh::TRANSFORM_2D);
+	batch.set_instance_count(64);
+	batch.set_visible_instance_count(0);
+	batch.set_meshes({ create_circle_polygon(radius), create_ring_polygon(radius, radius + 1.25, WHITE_TRANSPARENT, WHITE) });
+
+	for (int32_t instance = 0; instance < 64; ++instance) {
+		batch.set_instance_transform_2d(instance, Transform2D());
+		batch.set_instance_color(instance, WHITE);
+	}
+	return batch;
 }

@@ -86,6 +86,12 @@ void Chess2D::_ready() {
 	pieces_canvas_item.instantiate();
 	pieces_canvas_item.set_parent(get_canvas_item());
 
+	circle_meshes = theme->create_circle();
+	valid_moves_circles_canvas_item.instantiate();
+	valid_moves_circles_canvas_item.set_parent(get_canvas_item());
+	valid_moves_circles_canvas_item.set_self_modulate(Color::hex(0x77777715));
+	valid_moves_circles_canvas_item.set_transform(godot::Transform2D().translated(start_position + half_square));
+
 	valid_hover_canvas_item.instantiate();
 	valid_hover_canvas_item.set_parent(get_canvas_item());
 	valid_hover_canvas_item.set_self_modulate(Color("GREEN"));
@@ -139,7 +145,7 @@ void Chess2D::_process(double delta) {
 		}
 
 		if (square_offset != square_offsets.end()) {
-			draw_flags |= DrawFlags::SQUARES;
+			draw_flags |= DrawFlags::BOARD;
 			queue_redraw();
 		}
 
@@ -162,10 +168,11 @@ void Chess2D::_draw() {
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
+	const Vector2 half_square_size = Vector2(.5, .5) * theme->get_square_size();
 	const real_t offset = -theme->get_square_size() * 4;
 	const Vector2 start_position(offset, offset);
 
-	if (draw_flags | DrawFlags::FLOURISH) {
+	if (draw_flags & DrawFlags::FLOURISH) {
 		flourish_canvas_item.clear();
 		const Bitboard walls = session.position().walls();
 		if (walls != 0) {
@@ -182,7 +189,7 @@ void Chess2D::_draw() {
 		}
 	}
 
-	if (draw_flags | DrawFlags::SQUARES) {
+	if (draw_flags & DrawFlags::SQUARES) {
 		squares_canvas_item.clear();
 
 		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
@@ -206,7 +213,7 @@ void Chess2D::_draw() {
 		}
 	}
 
-	if (draw_flags | DrawFlags::SQUARES) {
+	if (draw_flags & DrawFlags::SQUARES) {
 		file_rank_canvas_item.clear();
 		const real_t font_size = theme->get_square_size() / 5;
 		for (size_t rank = 0; rank < RANKS.size(); rank++) {
@@ -233,7 +240,7 @@ void Chess2D::_draw() {
 		}
 	}
 
-	if (draw_flags | DrawFlags::SQUARES && session.position().walls() != 0) {
+	if (draw_flags & DrawFlags::SQUARES && session.position().walls() != 0) {
 		right_slide_hint_canvas_item.clear();
 		up_slide_hint_canvas_item.clear();
 		left_slide_hint_canvas_item.clear();
@@ -267,26 +274,39 @@ void Chess2D::_draw() {
 		}
 	}
 
-	if (draw_flags | DrawFlags::PIECES) {
+	if (draw_flags & DrawFlags::PIECES) {
 		pieces_canvas_item.clear();
 		for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
 			for (PieceColor piece_color = PieceColor::WHITE; piece_color != PieceColor::INVALID; ++piece_color) {
+				const Ref<MultiMesh> &mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()];
 				const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
 				ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
 
 				Bitboard squares = session.position().colorPieceMask(piece_color, piece_type);
+				int32_t instance = 0;
 				while (squares != 0) {
 					const Square square(squares);
 					squares = squares.popLsb();
 
 					const Color color = valid_moves_map[square].is_empty() ? Color("GRAY") : Color("WHITE");
-					pieces_canvas_item.add_texture_rect(Rect2(get_square_position(square) + piece_offsets[square], square_size), *texture.ptr(), false, color);
+					mesh->set_instance_color(instance, color);
+					const Vector2 piece_offset = piece_offsets[square] + half_square_size;
+					mesh->set_instance_transform_2d(instance, Transform2D().translated(get_square_position(square) + piece_offset));
+					++instance;
+				}
+
+				if (likely(instance > 0)) {
+					mesh->set_visible_instance_count(instance);
+					pieces_canvas_item.add_multimesh(*mesh.ptr(), *texture.ptr());
 				}
 			}
 		}
 	}
 
-	if (draw_flags | DrawFlags::HIGHLIGHT) {
+	circle_meshes.set_visible_instance_count(1);
+	circle_meshes.add_multimesh(*valid_moves_circles_canvas_item);
+
+	if (draw_flags & DrawFlags::HIGHLIGHT) {
 		valid_hover_canvas_item.clear();
 		invalid_hover_canvas_item.clear();
 		if (!annotation_begin_square) {
@@ -304,7 +324,7 @@ void Chess2D::_draw() {
 		}
 	}
 
-	if (draw_flags | DrawFlags::ANNOTATIONS) {
+	if (draw_flags & DrawFlags::ANNOTATIONS) {
 		annotations_canvas_item.clear();
 		for (uint16_t annotation : annotations) {
 			const Square from(annotation % 64);
@@ -478,12 +498,20 @@ void Chess2D::set_flipped(bool flipped) {
 }
 
 void Chess2D::set_theme(const Ref<ChessTheme> &theme) {
+	using namespace phase4::engine::common;
+
 	if (this->theme.is_valid()) {
 		Callable queue_redraw(this, "queue_redraw");
 		this->theme->disconnect("changed", queue_redraw);
 	}
 	this->theme = theme;
 	draw_flags |= DrawFlags::ALL;
+
+	for (PieceColor piece_color = PieceColor::WHITE; piece_color != PieceColor::INVALID; ++piece_color) {
+		for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
+			piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()] = theme->get_square_mesh();
+		}
+	}
 	queue_redraw();
 	if (this->theme.is_valid()) {
 		Callable queue_redraw(this, "queue_redraw");
