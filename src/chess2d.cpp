@@ -89,7 +89,7 @@ void Chess2D::_ready() {
 	circle_meshes = theme->create_circle();
 	valid_moves_circles_canvas_item.instantiate();
 	valid_moves_circles_canvas_item.set_parent(get_canvas_item());
-	valid_moves_circles_canvas_item.set_self_modulate(Color::hex(0x77777799));
+	valid_moves_circles_canvas_item.set_self_modulate(Color::hex(0x666666BA));
 	valid_moves_circles_canvas_item.set_transform(godot::Transform2D().translated(half_square));
 
 	valid_hover_canvas_item.instantiate();
@@ -133,7 +133,7 @@ void Chess2D::_process(double delta) {
 
 		for (; piece_offset != piece_offsets.end(); ++piece_offset) {
 			if (*piece_offset != Vector2(0, 0)) {
-				*piece_offset = piece_offset->move_toward(Vector2(0, 0), delta * theme->get_square_size());
+				*piece_offset = piece_offset->move_toward(Vector2(0, 0), delta * Math::clamp(piece_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 			}
 		}
 	} else {
@@ -151,7 +151,7 @@ void Chess2D::_process(double delta) {
 
 		for (; square_offset != square_offsets.end(); ++square_offset) {
 			if (*square_offset != Vector2(0, 0)) {
-				*square_offset = square_offset->move_toward(Vector2(0, 0), delta * theme->get_square_size());
+				*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 			}
 		}
 	}
@@ -259,7 +259,7 @@ void Chess2D::_draw() {
 		const std::array<FieldIndex, 64> &slide_dir = WallOperations::SLIDE_DIR[session.position().walls().fastBitScan()];
 		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
 			const Rect2 rect(get_square_position(square), square_size);
-			const Color color = Color::hex(0x3232324c);
+			const Color color = Color(1.1, 1.25, 1.25, .25);
 
 			const FieldIndex direction = is_flipped ? -slide_dir[square] : slide_dir[square];
 			if (direction == FieldIndex::ZERO)
