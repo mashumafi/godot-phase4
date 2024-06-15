@@ -205,13 +205,11 @@ void Chess2D::_draw() {
 			if (const std::optional<Square> &from = get_selected()) {
 				const Move move(*from, flippedSquare, MoveFlags::QUIET);
 				const std::optional<Move> &realMove = PositionMoves::findRealMove(session.position(), move);
-				color = realMove ? color : color.darkened(.15);
+				color = realMove ? color.darkened(-.15) : color;
 				if (realMove) {
 					circle_meshes.set_instance_transform_2d(circle_count, Transform2D().translated(get_square_position(flippedSquare)));
 					++circle_count;
 				}
-			} else {
-				color = color.darkened(.15);
 			}
 
 			squares_canvas_item.add_rect(Rect2(get_square_position(flippedSquare), square_size), color);
