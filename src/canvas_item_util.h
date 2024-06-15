@@ -6,6 +6,7 @@
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/texture.hpp>
+#include <godot_cpp/classes/multi_mesh.hpp>
 #include <godot_cpp/variant/color.hpp>
 #include <godot_cpp/variant/rect2.hpp>
 #include <godot_cpp/variant/transform2d.hpp>
@@ -74,6 +75,18 @@ public:
 		ERR_FAIL_COND(!canvas_item.is_valid());
 
 		godot::RenderingServer::get_singleton()->canvas_item_add_mesh(canvas_item, mesh.get_rid(), transform, modulate);
+	}
+
+	inline void add_multimesh(const godot::MultiMesh& mesh) {
+		ERR_FAIL_COND(!canvas_item.is_valid());
+
+		godot::RenderingServer::get_singleton()->canvas_item_add_multimesh(canvas_item, mesh.get_rid());
+	}
+
+	inline void add_multimesh(const godot::MultiMesh& mesh, const godot::Texture& texture) {
+		ERR_FAIL_COND(!canvas_item.is_valid());
+
+		godot::RenderingServer::get_singleton()->canvas_item_add_multimesh(canvas_item, mesh.get_rid(), texture.get_rid());
 	}
 
 	inline void add_mesh(const godot::Mesh &mesh, const godot::Transform2D &transform, const godot::Color &modulate, const godot::Texture &texture) const {

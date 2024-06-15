@@ -2,12 +2,14 @@
 #define CHESSTHEME_H
 
 #include "canvas_item_util.h"
+#include "batch_multi_mesh.h"
 
 #include <godot_cpp/classes/font.hpp>
 #include <godot_cpp/classes/mesh.hpp>
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/texture.hpp>
+#include <godot_cpp/classes/multi_mesh.hpp>
 #include <godot_cpp/core/math.hpp>
 
 #include <phase4/engine/common/field_index.h>
@@ -266,6 +268,8 @@ public:
 		ERR_FAIL_V_MSG(invalid_texture, "Invalid Piece Color");
 	}
 
+	Ref<MultiMesh> get_square_mesh() const;
+
 	const Ref<Mesh> &get_highlight_mesh() const {
 		return highlight_mesh;
 	}
@@ -281,6 +285,8 @@ public:
 	const Mesh &get_flourish_mesh() const {
 		return *flourish_mesh.ptr();
 	}
+
+	BatchMultiMesh<2> create_circle();
 
 	CanvasItemUtil slide_hint_canvas_item_create(const Vector2 &direction) {
 		CanvasItemUtil canvas_item;

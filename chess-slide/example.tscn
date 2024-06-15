@@ -7,6 +7,7 @@
 script = ExtResource("1_gytl7")
 
 [node name="Chess2D" type="Chess2D" parent="."]
+fen = "rnbqkbnr/pppp3p/7P/4p1P1/3P4/4pN2/PPPPPR2/RNBQKB2 b Qkq - 1 6"
 theme = ExtResource("1_v56od")
 
 [node name="Camera2D" type="Camera2D" parent="."]

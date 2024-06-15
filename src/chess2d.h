@@ -27,7 +27,7 @@ class Chess2D : public Node2D {
 		ANNOTATIONS = 0b1000,
 		HIGHLIGHT = 0b10000,
 
-		BOARD = 0b110,
+		BOARD = SQUARES | PIECES,
 		ALL = 0b11111,
 	};
 	int64_t draw_flags = DrawFlags::ALL;
@@ -44,21 +44,29 @@ private:
 
 	phase4::engine::board::Session session;
 
+	CanvasItemUtil flourish_canvas_item;
 	CanvasItemUtil squares_canvas_item;
 	CanvasItemUtil right_slide_hint_canvas_item;
 	CanvasItemUtil up_slide_hint_canvas_item;
 	CanvasItemUtil left_slide_hint_canvas_item;
 	CanvasItemUtil down_slide_hint_canvas_item;
-	CanvasItemUtil flourish_canvas_item;
 	CanvasItemUtil file_rank_canvas_item;
 	CanvasItemUtil pieces_canvas_item;
+	CanvasItemUtil valid_moves_circles_canvas_item;
 	CanvasItemUtil valid_hover_canvas_item;
 	CanvasItemUtil invalid_hover_canvas_item;
 	CanvasItemUtil selected_canvas_item;
 	CanvasItemUtil annotations_canvas_item;
 
+	BatchMultiMesh<2> circle_meshes;
+
 	phase4::engine::moves::Moves valid_moves;
 	std::array<phase4::engine::common::FastVector<phase4::engine::moves::Move, 21>, 64> valid_moves_map;
+
+	std::array<Vector2, 64> square_offsets;
+	std::array<Vector2, 64> piece_offsets;
+
+	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
 
 	void compute_valid_moves() {
 		valid_moves.clear();
@@ -101,7 +109,7 @@ public:
 		const Vector2 start_position(offset, offset);
 
 		const FieldIndex field = (is_flipped ? square.flipped() : square).asFieldIndex();
-		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y);
+		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y) + square_offsets[square];
 	}
 
 	std::optional<phase4::engine::common::Square> get_selected() {
@@ -142,6 +150,14 @@ public:
 		} else {
 			annotations.insert(value);
 		}
+	}
+
+	void clear_offsets() {
+		square_offsets.fill(Vector2(0, 0));
+		piece_offsets.fill(Vector2(0, 0));
+
+		draw_flags |= DrawFlags::BOARD;
+		queue_redraw();
 	}
 };
 
