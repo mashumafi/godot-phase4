@@ -25,3 +25,6 @@ android.debug.arm64 = "res://bin/android/libphase4.android.template_debug.arm64.
 android.release.arm64 = "res://bin/android/libphase4.android.template_release.arm64.so"
 web.wasm32 = "res://bin/web/libphase4.web.template_debug.wasm32.wasm"
 web.template_release.wasm32 = "res://bin/web/libphase4.web.template_release.wasm32.wasm"
+
+[icons]
+Chess2D = "Chess2D.svg"
