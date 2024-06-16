@@ -31,7 +31,7 @@ class Chess2D : public Node2D {
 		FILE_RANK = 0b10000000,
 
 		BOARD = SQUARES | PIECES | FILE_RANK,
-		ALL = 0b111111,
+		ALL = 0b1111111,
 	};
 	int64_t draw_flags = DrawFlags::ALL;
 
