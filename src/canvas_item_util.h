@@ -23,7 +23,7 @@ public:
 	CanvasItemUtil &operator=(const CanvasItemUtil &) = delete;
 
 	inline void instantiate() {
-		ERR_FAIL_COND_MSG(material.is_valid(), "Already owns a canvas item");
+		ERR_FAIL_COND_MSG(canvas_item.is_valid(), "Already instantiated");
 
 		canvas_item = godot::RenderingServer::get_singleton()->canvas_item_create();
 	}

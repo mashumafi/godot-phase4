@@ -27,6 +27,7 @@ class Chess2D : public Node2D {
 		ANNOTATIONS = 0b1000,
 		HIGHLIGHT = 0b10000,
 		VALID_MOVES = 0b100000,
+		DRAG_PIECE = 0b1000000,
 
 		BOARD = SQUARES | PIECES,
 		ALL = 0b111111,
@@ -34,11 +35,46 @@ class Chess2D : public Node2D {
 	int64_t draw_flags = DrawFlags::ALL;
 
 private:
+	bool make_move(phase4::engine::common::Square from, phase4::engine::common::Square to) {
+		using namespace phase4::engine::common;
+		using namespace phase4::engine::moves;
+
+		const Move move(from, to, MoveFlags::QUIET);
+		auto realMove = phase4::engine::board::PositionMoves::findRealMove(session.position(), move);
+		if (!realMove) {
+			return false;
+		}
+
+		clear_animation_offsets();
+		const phase4::engine::board::PositionMoves::MakeMoveResult &result = session.makeMove(*realMove);
+		if (result.slide) {
+			const FieldIndex fixedSlide(result.slide->x, -result.slide->y);
+			const Square slideTo = Square(fixedSlide + to.asFieldIndex());
+			piece_animation_offsets[slideTo] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
+
+			Bitboard walls = session.position().walls();
+			while (walls > 0) {
+				const Square wall(Square(walls).asFieldIndex() + fixedSlide);
+				walls = walls.popLsb();
+				square_animation_offsets[wall] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
+			}
+		} else {
+			piece_animation_offsets[result.moved[0].to] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
+		}
+
+		compute_valid_moves();
+		draw_flags |= DrawFlags::BOARD;
+		queue_redraw();
+
+		return true;
+	}
+
 	Ref<ChessTheme> theme = nullptr;
 	bool is_flipped = false;
 
 	std::optional<Vector2i> highlighted_square;
 	std::optional<Vector2i> selected_square;
+	std::optional<Vector2i> drag_piece;
 	std::optional<Vector2i> annotation_begin_square;
 	std::optional<Vector2i> annotation_end_square;
 	std::unordered_set<uint16_t> annotations;
@@ -59,9 +95,11 @@ private:
 	CanvasItemUtil invalid_hover_canvas_item;
 	CanvasItemUtil selected_canvas_item;
 	CanvasItemUtil annotations_canvas_item;
+	CanvasItemUtil drag_piece_canvas_item;
 
 	BatchMultiMesh<2> valid_circle_multimeshes;
 	Ref<MultiMesh> valid_square_multimesh;
+	Ref<Mesh> drag_piece_mesh;
 
 	phase4::engine::moves::Moves valid_moves;
 	std::array<phase4::engine::common::FastVector<phase4::engine::moves::Move, 21>, 64> valid_moves_map;
@@ -123,6 +161,18 @@ public:
 		}
 
 		Square square(FieldIndex(selected_square->x, 7 - selected_square->y));
+
+		return is_flipped ? square.flipped() : square;
+	}
+
+	phase4::engine::common::Square get_dragged() {
+		using namespace phase4::engine::common;
+
+		if (!drag_piece) {
+			return Square::INVALID;
+		}
+
+		Square square(FieldIndex(drag_piece->x, 7 - drag_piece->y));
 
 		return is_flipped ? square.flipped() : square;
 	}

@@ -446,14 +446,18 @@ void ChessTheme::set_flourish(const Ref<Texture> &texture) {
 	flourish_mesh = create_centered_square_polygon(square_size * 2);
 }
 
-Ref<MultiMesh> ChessTheme::get_square_mesh(bool use_colors) const {
+Ref<Mesh> ChessTheme::create_square_mesh() const {
+	return create_centered_square_polygon(square_size);
+}
+
+Ref<MultiMesh> ChessTheme::create_square_multimesh(bool use_colors) const {
 	Ref<MultiMesh> mesh;
 	mesh.instantiate();
 	mesh->set_use_colors(use_colors);
 	mesh->set_transform_format(MultiMesh::TRANSFORM_2D);
 	mesh->set_instance_count(64);
 	mesh->set_visible_instance_count(0);
-	mesh->set_mesh(create_centered_square_polygon(square_size));
+	mesh->set_mesh(create_square_mesh());
 	return mesh;
 }
 
