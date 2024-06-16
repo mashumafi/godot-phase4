@@ -242,28 +242,42 @@ void Chess2D::_draw() {
 		}
 	}
 
-	if (draw_flags & DrawFlags::SQUARES) {
+	if (draw_flags & DrawFlags::FILE_RANK) {
 		file_rank_canvas_item.clear();
 		const real_t font_size = theme->get_square_size() / 5;
+		const int32_t fixed_field = is_flipped ? 0 : 7;
+		const int32_t color_mod = is_flipped ? 0 : 1;
+
+		auto next_square = [&position = session.position(), is_flipped = this->is_flipped](const FieldIndex &field_index, const Square::Direction &normal_direction, const Square::Direction &flipped_direction) -> Square {
+			const Square square(field_index);
+			if ((square.asBitboard() & position.walls()) == 0) {
+				return square;
+			}
+
+			return is_flipped ? (square.*flipped_direction)(2) : (square.*normal_direction)(2);
+		};
+
+		// The vertical numbers
 		for (size_t rank = 0; rank < RANKS.size(); rank++) {
-			const size_t rank_index = is_flipped ? rank : RANKS.size() - rank - 1;
-			const Color color = rank % 2 == 0 ? theme->get_black_square_color() : theme->get_white_square_color();
+			const Square square(next_square(FieldIndex(7 - fixed_field, rank), &Square::east, &Square::west));
+			const Color color = rank % 2 == color_mod ? theme->get_black_square_color() : theme->get_white_square_color();
 			theme->get_font()->draw_char(
 					*file_rank_canvas_item,
-					start_position + Vector2(0, theme->get_square_size() * (rank + 1)),
-					RANKS[rank_index],
+					get_square_position(square) + Vector2(0, theme->get_square_size()),
+					RANKS[rank],
 					font_size,
 					color);
 		}
 
-		const real_t ascent = theme->get_font()->get_ascent(font_size);
+		// The horizontal letters
+		const double ascent = theme->get_font()->get_ascent(font_size);
 		for (size_t file = 0; file < FILES.size(); file++) {
-			const size_t file_index = is_flipped ? FILES.size() - file - 1 : file;
-			const Color color = file % 2 == 0 ? theme->get_black_square_color() : theme->get_white_square_color();
+			const Square square(next_square(FieldIndex(file, fixed_field), &Square::south, &Square::north));
+			const Color color = file % 2 != color_mod ? theme->get_black_square_color() : theme->get_white_square_color();
 			theme->get_font()->draw_char(
 					*file_rank_canvas_item,
-					start_position + Vector2(theme->get_square_size() * file, ascent),
-					FILES[file_index],
+					get_square_position(square) + Vector2(0, ascent),
+					FILES[file],
 					font_size,
 					color);
 		}
@@ -460,12 +474,10 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 					queue_redraw();
 				}
-			} else {
-				// Mouse Released
+			} else { // Mouse Released
 				drag_piece.reset();
 				draw_flags |= DrawFlags::DRAG_PIECE | DrawFlags::PIECES;
 				queue_redraw();
-				// TODO: Set piece animation offset
 
 				if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
