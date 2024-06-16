@@ -28,7 +28,7 @@ project/assembly_name="godot cpp template"
 
 [gui]
 
-theme/default_theme_scale=4.0
+theme/default_theme_scale=3.0
 theme/custom_font="res://Fonts/GrotesqueItalic.ttf"
 
 [rendering]

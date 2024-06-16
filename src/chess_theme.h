@@ -268,7 +268,8 @@ public:
 		ERR_FAIL_V_MSG(invalid_texture, "Invalid Piece Color");
 	}
 
-	Ref<MultiMesh> get_square_mesh(bool use_colors = true) const;
+	Ref<MultiMesh> create_square_multimesh(bool use_colors = true) const;
+	Ref<Mesh> create_square_mesh() const;
 
 	const Ref<Mesh> &get_highlight_mesh() const {
 		return highlight_mesh;
@@ -288,7 +289,7 @@ public:
 
 	BatchMultiMesh<2> create_circle();
 
-	CanvasItemUtil slide_hint_canvas_item_create(const Vector2 &direction) {
+	CanvasItemUtil create_slide_hint_canvas_item(const Vector2 &direction) {
 		CanvasItemUtil canvas_item;
 		canvas_item.instantiate();
 

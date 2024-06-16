@@ -70,7 +70,7 @@ void Chess2D::_ready() {
 	squares_canvas_item.instantiate();
 	squares_canvas_item.set_parent(get_canvas_item());
 
-	valid_square_multimesh = theme->get_square_mesh(false);
+	valid_square_multimesh = theme->create_square_multimesh(false);
 	valid_move_squares_canvas_item.instantiate();
 	valid_move_squares_canvas_item.set_parent(get_canvas_item());
 	valid_move_squares_canvas_item.set_self_modulate(Color(.75, .55, .05, .15));
@@ -80,13 +80,13 @@ void Chess2D::_ready() {
 	file_rank_canvas_item.set_parent(get_canvas_item());
 
 	const float slide_hint_speed = .25;
-	right_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(slide_hint_speed, 0));
+	right_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(slide_hint_speed, 0));
 	right_slide_hint_canvas_item.set_parent(get_canvas_item());
-	up_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, -slide_hint_speed));
+	up_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(0, -slide_hint_speed));
 	up_slide_hint_canvas_item.set_parent(get_canvas_item());
-	left_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(-slide_hint_speed, 0));
+	left_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(-slide_hint_speed, 0));
 	left_slide_hint_canvas_item.set_parent(get_canvas_item());
-	down_slide_hint_canvas_item = theme->slide_hint_canvas_item_create(Vector2(0, slide_hint_speed));
+	down_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(0, slide_hint_speed));
 	down_slide_hint_canvas_item.set_parent(get_canvas_item());
 
 	pieces_canvas_item.instantiate();
@@ -114,6 +114,10 @@ void Chess2D::_ready() {
 	annotations_canvas_item.set_parent(get_canvas_item());
 	annotations_canvas_item.set_self_modulate(theme->get_annotation_color());
 	annotations_canvas_item.set_transform(godot::Transform2D().translated(start_position + half_square));
+
+	drag_piece_mesh = theme->create_square_mesh();
+	drag_piece_canvas_item.instantiate();
+	drag_piece_canvas_item.set_parent(get_canvas_item());
 }
 
 void Chess2D::_process(double delta) {
@@ -160,6 +164,11 @@ void Chess2D::_process(double delta) {
 				*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 			}
 		}
+	}
+
+	if (drag_piece) {
+		draw_flags |= DrawFlags::DRAG_PIECE;
+		queue_redraw();
 	}
 }
 
@@ -296,6 +305,7 @@ void Chess2D::_draw() {
 
 	if (draw_flags & DrawFlags::PIECES) {
 		pieces_canvas_item.clear();
+		const Square dragged_square = get_dragged();
 		for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
 			for (PieceColor piece_color = PieceColor::WHITE; piece_color != PieceColor::INVALID; ++piece_color) {
 				const Ref<MultiMesh> &mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()];
@@ -307,6 +317,9 @@ void Chess2D::_draw() {
 				while (squares != 0) {
 					const Square square(squares);
 					squares = squares.popLsb();
+					if (square == dragged_square) {
+						continue;
+					}
 
 					const Color color = valid_moves_map[square].is_empty() ? Color("GRAY") : Color("WHITE");
 					mesh->set_instance_color(instance, color);
@@ -356,6 +369,22 @@ void Chess2D::_draw() {
 			const Square from(FieldIndex(annotation_begin_square->x, 7 - annotation_begin_square->y));
 			const Square to(FieldIndex(mouse_square_transform.x, 7 - mouse_square_transform.y));
 			annotations_canvas_item.add_mesh(*theme->get_annotation_mesh(from, to).ptr(), theme->get_annotation_transform(from, to));
+		}
+	}
+
+	if (draw_flags & DrawFlags::DRAG_PIECE) {
+		drag_piece_canvas_item.clear();
+
+		Square drag_square = get_dragged();
+		if (drag_square < Square::INVALID) {
+			const Vector2 scale(1.25, 1.25);
+			const Transform2D transform = Transform2D().scaled(scale).translated(get_global_mouse_position());
+			const std::optional<std::tuple<PieceColor, PieceType>> &pieceTypeAndColor = session.position().getPiece(drag_square);
+			assert(pieceTypeAndColor); // This square should have a valid piece and color
+			const auto &[piece_color, piece_type] = *pieceTypeAndColor;
+			const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
+			assert(texture.is_valid()); // A texture should be found since everything is valid above
+			drag_piece_canvas_item.add_mesh(*drag_piece_mesh.ptr(), transform, Color(1, 1, 1, 1), *texture.ptr());
 		}
 	}
 
@@ -413,43 +442,17 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 			if (mouse_button->is_pressed()) {
 				if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
-						const Move move(*from, *to, MoveFlags::QUIET);
-						auto realMove = phase4::engine::board::PositionMoves::findRealMove(session.position(), move);
-						if (realMove) {
-							clear_animation_offsets();
-							const phase4::engine::board::PositionMoves::MakeMoveResult &result = session.makeMove(*realMove);
-							if (result.slide) {
-								const FieldIndex fixedSlide(result.slide->x, -result.slide->y);
-								const Square slideTo = Square(fixedSlide + to->asFieldIndex());
-								piece_animation_offsets[slideTo] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
-
-								Bitboard walls = session.position().walls();
-								while (walls > 0) {
-									const Square wall(Square(walls).asFieldIndex() + fixedSlide);
-									walls = walls.popLsb();
-									square_animation_offsets[wall] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
-								}
-							} else {
-								piece_animation_offsets[result.moved[0].to] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
-							}
-
-							compute_valid_moves();
-							draw_flags |= DrawFlags::BOARD;
-							queue_redraw();
-						}
+						make_move(*from, *to);
 					}
 					if (valid_moves_map[*to].is_empty()) {
 						selected_square.reset();
 						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 						queue_redraw();
-					} else if (selected_square == mouse_square_transform) {
-						selected_square.reset();
-						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
-						queue_redraw();
 					} else {
 						selected_square = mouse_square_transform;
+						drag_piece = mouse_square_transform;
 
-						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
+						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES | DrawFlags::DRAG_PIECE | DrawFlags::PIECES;
 						queue_redraw();
 					}
 				} else {
@@ -458,10 +461,19 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					queue_redraw();
 				}
 			} else {
-				if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
-					const Square square(FieldIndex(selected_square->x, 7 - selected_square->y));
-					if (!valid_moves_map[square].is_empty()) {
-						// TODO: Attempt to make a move based on the dropped square
+				// Mouse Released
+				drag_piece.reset();
+				draw_flags |= DrawFlags::DRAG_PIECE | DrawFlags::PIECES;
+				queue_redraw();
+				// TODO: Set piece animation offset
+
+				if (const std::optional<Square> &to = get_mouse_square()) {
+					if (const std::optional<Square> &from = get_selected()) {
+						if (make_move(*from, *to)) {
+							selected_square.reset();
+							draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
+							queue_redraw();
+						}
 					}
 				}
 			}
@@ -534,7 +546,7 @@ void Chess2D::set_theme(const Ref<ChessTheme> &theme) {
 
 	for (PieceColor piece_color = PieceColor::WHITE; piece_color != PieceColor::INVALID; ++piece_color) {
 		for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
-			piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()] = theme->get_square_mesh();
+			piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()] = theme->create_square_multimesh();
 		}
 	}
 	queue_redraw();
