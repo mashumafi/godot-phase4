@@ -1,15 +1,15 @@
 #ifndef CHESSTHEME_H
 #define CHESSTHEME_H
 
-#include "canvas_item_util.h"
 #include "batch_multi_mesh.h"
+#include "canvas_item_util.h"
 
 #include <godot_cpp/classes/font.hpp>
 #include <godot_cpp/classes/mesh.hpp>
+#include <godot_cpp/classes/multi_mesh.hpp>
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/texture.hpp>
-#include <godot_cpp/classes/multi_mesh.hpp>
 #include <godot_cpp/core/math.hpp>
 
 #include <phase4/engine/common/field_index.h>

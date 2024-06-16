@@ -248,7 +248,7 @@ void Chess2D::_draw() {
 		const int32_t fixed_field = is_flipped ? 0 : 7;
 		const int32_t color_mod = is_flipped ? 0 : 1;
 
-		auto next_square = [&position = session.position(), is_flipped = this->is_flipped](const FieldIndex& field_index, const Square::Direction& normal_direction, const Square::Direction& flipped_direction) -> Square {
+		auto next_square = [&position = session.position(), is_flipped = this->is_flipped](const FieldIndex &field_index, const Square::Direction &normal_direction, const Square::Direction &flipped_direction) -> Square {
 			const Square square(field_index);
 			if ((square.asBitboard() & position.walls()) == 0) {
 				return square;
