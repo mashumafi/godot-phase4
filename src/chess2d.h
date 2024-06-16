@@ -28,8 +28,9 @@ class Chess2D : public Node2D {
 		HIGHLIGHT = 0b10000,
 		VALID_MOVES = 0b100000,
 		DRAG_PIECE = 0b1000000,
+		FILE_RANK = 0b10000000,
 
-		BOARD = SQUARES | PIECES,
+		BOARD = SQUARES | PIECES | FILE_RANK,
 		ALL = 0b111111,
 	};
 	int64_t draw_flags = DrawFlags::ALL;
@@ -58,6 +59,8 @@ private:
 				walls = walls.popLsb();
 				square_animation_offsets[wall] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
 			}
+
+			draw_flags |= DrawFlags::FILE_RANK;
 		} else {
 			piece_animation_offsets[result.moved[0].to] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
 		}
