@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Chess Slide"
-run/main_scene="res://example.tscn"
+run/main_scene="res://chess_session.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -26,6 +26,12 @@ window/stretch/aspect="expand"
 
 project/assembly_name="godot cpp template"
 
+[gui]
+
+theme/default_theme_scale=4.0
+theme/custom_font="res://Fonts/GrotesqueItalic.ttf"
+
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.254898, 0.315374, 0.361979, 1)

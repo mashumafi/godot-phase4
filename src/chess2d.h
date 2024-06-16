@@ -26,9 +26,10 @@ class Chess2D : public Node2D {
 		PIECES = 0b100,
 		ANNOTATIONS = 0b1000,
 		HIGHLIGHT = 0b10000,
+		VALID_MOVES = 0b100000,
 
 		BOARD = SQUARES | PIECES,
-		ALL = 0b11111,
+		ALL = 0b111111,
 	};
 	int64_t draw_flags = DrawFlags::ALL;
 
@@ -46,25 +47,27 @@ private:
 
 	CanvasItemUtil flourish_canvas_item;
 	CanvasItemUtil squares_canvas_item;
+	CanvasItemUtil valid_move_squares_canvas_item;
 	CanvasItemUtil right_slide_hint_canvas_item;
 	CanvasItemUtil up_slide_hint_canvas_item;
 	CanvasItemUtil left_slide_hint_canvas_item;
 	CanvasItemUtil down_slide_hint_canvas_item;
 	CanvasItemUtil file_rank_canvas_item;
 	CanvasItemUtil pieces_canvas_item;
-	CanvasItemUtil valid_moves_circles_canvas_item;
+	CanvasItemUtil valid_move_circles_canvas_item;
 	CanvasItemUtil valid_hover_canvas_item;
 	CanvasItemUtil invalid_hover_canvas_item;
 	CanvasItemUtil selected_canvas_item;
 	CanvasItemUtil annotations_canvas_item;
 
-	BatchMultiMesh<2> circle_meshes;
+	BatchMultiMesh<2> valid_circle_multimeshes;
+	Ref<MultiMesh> valid_square_multimesh;
 
 	phase4::engine::moves::Moves valid_moves;
 	std::array<phase4::engine::common::FastVector<phase4::engine::moves::Move, 21>, 64> valid_moves_map;
 
-	std::array<Vector2, 64> square_offsets;
-	std::array<Vector2, 64> piece_offsets;
+	std::array<Vector2, 64> square_animation_offsets;
+	std::array<Vector2, 64> piece_animation_offsets;
 
 	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
 
@@ -109,7 +112,7 @@ public:
 		const Vector2 start_position(offset, offset);
 
 		const FieldIndex field = (is_flipped ? square.flipped() : square).asFieldIndex();
-		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y) + square_offsets[square];
+		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y) + square_animation_offsets[square];
 	}
 
 	std::optional<phase4::engine::common::Square> get_selected() {
@@ -152,9 +155,9 @@ public:
 		}
 	}
 
-	void clear_offsets() {
-		square_offsets.fill(Vector2(0, 0));
-		piece_offsets.fill(Vector2(0, 0));
+	void clear_animation_offsets() {
+		square_animation_offsets.fill(Vector2(0, 0));
+		piece_animation_offsets.fill(Vector2(0, 0));
 
 		draw_flags |= DrawFlags::BOARD;
 		queue_redraw();

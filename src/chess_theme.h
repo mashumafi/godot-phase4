@@ -268,7 +268,7 @@ public:
 		ERR_FAIL_V_MSG(invalid_texture, "Invalid Piece Color");
 	}
 
-	Ref<MultiMesh> get_square_mesh() const;
+	Ref<MultiMesh> get_square_mesh(bool use_colors = true) const;
 
 	const Ref<Mesh> &get_highlight_mesh() const {
 		return highlight_mesh;

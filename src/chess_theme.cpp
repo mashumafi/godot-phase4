@@ -446,10 +446,10 @@ void ChessTheme::set_flourish(const Ref<Texture> &texture) {
 	flourish_mesh = create_centered_square_polygon(square_size * 2);
 }
 
-Ref<MultiMesh> ChessTheme::get_square_mesh() const {
+Ref<MultiMesh> ChessTheme::get_square_mesh(bool use_colors) const {
 	Ref<MultiMesh> mesh;
 	mesh.instantiate();
-	mesh->set_use_colors(true);
+	mesh->set_use_colors(use_colors);
 	mesh->set_transform_format(MultiMesh::TRANSFORM_2D);
 	mesh->set_instance_count(64);
 	mesh->set_visible_instance_count(0);
