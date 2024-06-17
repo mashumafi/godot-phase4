@@ -53,7 +53,7 @@ color = Color(0.121028, 0.125371, 0.247059, 0.501961)
 material = SubResource("ShaderMaterial_xwx7p")
 offset_left = -1920.0
 offset_top = -1080.0
-offset_right = 1920.0
+offset_right = 2040.0
 offset_bottom = 1080.0
 color = Color(0.102176, 0.296541, 0.313726, 0.501961)
 
@@ -62,7 +62,7 @@ material = SubResource("ShaderMaterial_ydlu6")
 offset_left = -1920.0
 offset_top = -1080.0
 offset_right = 1920.0
-offset_bottom = 1080.0
+offset_bottom = 1120.0
 color = Color(0.294271, 0.123235, 0.0774928, 0.501961)
 
 [node name="Chess2D" type="Chess2D" parent="SubViewportContainer/SubViewport"]
