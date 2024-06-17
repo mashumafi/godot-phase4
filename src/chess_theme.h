@@ -40,6 +40,7 @@ private:
 	Ref<Texture> black_king_texture;
 
 	Ref<godot::ShaderMaterial> slide_hint_material;
+	Ref<godot::ShaderMaterial> king_danger_material;
 
 	Color white_square_color;
 	Color black_square_color;
@@ -66,6 +67,7 @@ public:
 
 	void set_white_pawn_texture(const Ref<Texture> &texture) {
 		white_pawn_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_white_knight_texture() const {
@@ -74,6 +76,7 @@ public:
 
 	void set_white_knight_texture(const Ref<Texture> &texture) {
 		white_knight_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_white_bishop_texture() const {
@@ -82,6 +85,7 @@ public:
 
 	void set_white_bishop_texture(const Ref<Texture> &texture) {
 		white_bishop_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_white_rook_texture() const {
@@ -90,6 +94,7 @@ public:
 
 	void set_white_rook_texture(const Ref<Texture> &texture) {
 		white_rook_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_white_queen_texture() const {
@@ -98,6 +103,7 @@ public:
 
 	void set_white_queen_texture(const Ref<Texture> &texture) {
 		white_queen_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_white_king_texture() const {
@@ -106,6 +112,7 @@ public:
 
 	void set_white_king_texture(const Ref<Texture> &texture) {
 		white_king_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_black_pawn_texture() const {
@@ -114,6 +121,7 @@ public:
 
 	void set_black_pawn_texture(const Ref<Texture> &texture) {
 		black_pawn_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_black_knight_texture() const {
@@ -122,6 +130,7 @@ public:
 
 	void set_black_knight_texture(const Ref<Texture> &texture) {
 		black_knight_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_black_bishop_texture() const {
@@ -130,6 +139,7 @@ public:
 
 	void set_black_bishop_texture(const Ref<Texture> &texture) {
 		black_bishop_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_black_rook_texture() const {
@@ -138,6 +148,7 @@ public:
 
 	void set_black_rook_texture(const Ref<Texture> &texture) {
 		black_rook_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_black_queen_texture() const {
@@ -146,6 +157,7 @@ public:
 
 	void set_black_queen_texture(const Ref<Texture> &texture) {
 		black_queen_texture = texture;
+		emit_changed();
 	}
 
 	Ref<Texture> get_black_king_texture() const {
@@ -154,6 +166,7 @@ public:
 
 	void set_black_king_texture(const Ref<Texture> &texture) {
 		black_king_texture = texture;
+		emit_changed();
 	}
 
 	Color get_white_square_color() const {
@@ -162,6 +175,7 @@ public:
 
 	void set_white_square_color(Color color) {
 		white_square_color = color;
+		emit_changed();
 	}
 
 	Color get_black_square_color() const {
@@ -170,6 +184,7 @@ public:
 
 	void set_black_square_color(Color color) {
 		black_square_color = color;
+		emit_changed();
 	}
 
 	real_t get_square_size() const {
@@ -184,6 +199,7 @@ public:
 
 	void set_font(const Ref<Font> &font) {
 		this->font = font;
+		emit_changed();
 	}
 
 	Color get_annotation_color() const {
@@ -281,6 +297,16 @@ public:
 
 	void set_slide_hint_material(const Ref<godot::ShaderMaterial> &material) {
 		this->slide_hint_material = material;
+		emit_changed();
+	}
+
+	Ref<ShaderMaterial> get_king_danger_material() const {
+		return king_danger_material;
+	}
+
+	void set_king_danger_material(const Ref<godot::ShaderMaterial> &material) {
+		this->king_danger_material = material;
+		emit_changed();
 	}
 
 	const Mesh &get_flourish_mesh() const {

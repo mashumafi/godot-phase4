@@ -395,6 +395,15 @@ void ChessTheme::_bind_methods() {
 		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, slide_hint_material_property, PROPERTY_HINT_NONE), set_slide_hint_material_method, get_slide_hint_material_method);
 	}
 
+	{ // King Danger
+		const StringName get_king_danger_material_method = "get_king_danger_material";
+		const StringName set_king_danger_material_method = "set_king_danger_material";
+		const StringName king_danger_material_property = "king_danger_material";
+		ClassDB::bind_method(D_METHOD(get_king_danger_material_method), &ChessTheme::get_king_danger_material);
+		ClassDB::bind_method(D_METHOD(set_king_danger_material_method, king_danger_material_property), &ChessTheme::set_king_danger_material);
+		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, king_danger_material_property, PROPERTY_HINT_NONE), set_king_danger_material_method, get_king_danger_material_method);
+	}
+
 	{ // Florish
 		const StringName get_flourish_method = "get_flourish";
 		const StringName set_flourish_method = "set_flourish";
@@ -439,11 +448,13 @@ void ChessTheme::set_square_size(real_t size) {
 
 void ChessTheme::set_annotation_color(Color color) {
 	this->annotation_color = color;
+	emit_changed();
 }
 
 void ChessTheme::set_flourish(const Ref<Texture> &texture) {
 	flourish = texture;
 	flourish_mesh = create_centered_square_polygon(square_size * 2);
+	emit_changed();
 }
 
 Ref<Mesh> ChessTheme::create_square_mesh() const {

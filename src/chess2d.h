@@ -91,6 +91,7 @@ private:
 	CanvasItemUtil up_slide_hint_canvas_item;
 	CanvasItemUtil left_slide_hint_canvas_item;
 	CanvasItemUtil down_slide_hint_canvas_item;
+	CanvasItemUtil king_danger_canvas_item;
 	CanvasItemUtil file_rank_canvas_item;
 	CanvasItemUtil pieces_canvas_item;
 	CanvasItemUtil valid_move_circles_canvas_item;

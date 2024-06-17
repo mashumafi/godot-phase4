@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://depvjkc4cjt8c"]
+
+[ext_resource type="Shader" path="res://Shaders/Danger.gdshader" id="1_64xau"]
+
+[resource]
+shader = ExtResource("1_64xau")
+shader_parameter/ring_radius = 0.46
+shader_parameter/thickness_scalar = 0.7
+shader_parameter/oscillation_scalar = 0.025
+shader_parameter/speed = 1.0
+shader_parameter/main_color = Vector4(0.9, 0.2, 0.2, 0.9)
+shader_parameter/lerp_color = Vector4(0.9, 0.1, 0.1, 0.9)

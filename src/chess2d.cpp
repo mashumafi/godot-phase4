@@ -76,6 +76,10 @@ void Chess2D::_ready() {
 	valid_move_squares_canvas_item.set_self_modulate(Color(.75, .55, .05, .15));
 	valid_move_squares_canvas_item.set_transform(godot::Transform2D().translated(half_square));
 
+	king_danger_canvas_item.instantiate();
+	king_danger_canvas_item.set_parent(get_canvas_item());
+	king_danger_canvas_item.set_material(theme->get_king_danger_material());
+
 	file_rank_canvas_item.instantiate();
 	file_rank_canvas_item.set_parent(get_canvas_item());
 
@@ -319,9 +323,13 @@ void Chess2D::_draw() {
 
 	if (draw_flags & DrawFlags::PIECES) {
 		pieces_canvas_item.clear();
+		king_danger_canvas_item.clear();
 		const Square dragged_square = get_dragged();
-		for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
-			for (PieceColor piece_color = PieceColor::WHITE; piece_color != PieceColor::INVALID; ++piece_color) {
+		for (PieceColor piece_color = PieceColor::WHITE; piece_color != PieceColor::INVALID; ++piece_color) {
+			if (session.position().colorToMove() == piece_color && session.position().isKingChecked(piece_color)) {
+				king_danger_canvas_item.add_rect(Rect2(get_square_position(Square(session.position().colorPieceMask(piece_color, PieceType::KING))), square_size), Color(1.0, 1.0, 1.0, 1.0));
+			}
+			for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
 				const Ref<MultiMesh> &mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()];
 				const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
 				ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
