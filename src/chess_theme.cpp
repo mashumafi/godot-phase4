@@ -442,7 +442,7 @@ void ChessTheme::set_square_size(real_t size) {
 
 	const double innerRadius = square_size / 2.0f * .8f;
 	const double outterRadius = square_size / 2.0f * .9f;
-	annotation_meshes[Square::A1.get_raw_value()] = create_ring_polygon(innerRadius, outterRadius, Color::hex(0xFFFFFF00), Color::hex(0xFFFF00FF));
+	annotation_meshes[Square::A1.get_raw_value()] = create_ring_polygon(innerRadius, outterRadius);
 	highlight_mesh = create_hollow_square_polygon(square_size, -.05);
 }
 

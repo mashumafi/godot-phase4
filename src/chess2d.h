@@ -3,12 +3,14 @@
 
 #include "canvas_item_util.h"
 #include "chess_theme.h"
+#include "move_history.h"
 
 #include <godot_cpp/classes/input_event.hpp>
 #include <godot_cpp/classes/node2d.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
 
 #include <phase4/engine/board/session.h>
+#include <phase4/engine/moves/result.h>
 
 #include <memory>
 #include <optional>
@@ -39,30 +41,42 @@ private:
 	bool make_move(phase4::engine::common::Square from, phase4::engine::common::Square to) {
 		using namespace phase4::engine::common;
 		using namespace phase4::engine::moves;
+		using namespace phase4::engine::board;
 
 		const Move move(from, to, MoveFlags::QUIET);
-		auto realMove = phase4::engine::board::PositionMoves::findRealMove(session.position(), move);
+		const std::optional<Move> &realMove = PositionMoves::findRealMove(valid_moves, move);
 		if (!realMove) {
 			return false;
 		}
 
-		clear_animation_offsets();
-		const phase4::engine::board::PositionMoves::MakeMoveResult &result = session.makeMove(*realMove);
-		if (result.slide) {
-			const FieldIndex fixedSlide(result.slide->x, -result.slide->y);
-			const Square slideTo = Square(fixedSlide + to.asFieldIndex());
-			piece_animation_offsets[slideTo] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
+		moves.push_back(*realMove);
 
+		clear_animation_offsets();
+		const Result &result = session.makeMove(*realMove);
+		if (result.slide && result.slide != FieldIndex::ZERO) {
 			Bitboard walls = session.position().walls();
+			const FieldIndex fixedSlide(result.slide->x, -result.slide->y);
 			while (walls > 0) {
 				const Square wall(Square(walls).asFieldIndex() + fixedSlide);
 				walls = walls.popLsb();
 				square_animation_offsets[wall] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
 			}
 
+			walls = session.position().walls();
+			for (size_t i = 0; i < result.moved.size(); ++i) {
+				if ((walls & result.moved[i].to.asBitboard()) == 0) {
+					piece_animation_offsets[result.moved[i].to] = get_square_position(result.moved[i].from) - get_square_position(result.moved[i].to);
+				} else {
+					const Square slide_to(Square(result.moved[i].to).asFieldIndex() + fixedSlide);
+					piece_animation_offsets[slide_to] = get_square_position(result.moved[i].from) - get_square_position(slide_to);
+				}
+			}
+
 			draw_flags |= DrawFlags::FILE_RANK;
 		} else {
-			piece_animation_offsets[result.moved[0].to] = get_square_position(result.moved[0].from) - get_square_position(result.moved[0].to);
+			for (size_t i = 0; i < result.moved.size(); ++i) {
+				piece_animation_offsets[result.moved[i].to] = get_square_position(result.moved[i].from) - get_square_position(result.moved[i].to);
+			}
 		}
 
 		compute_valid_moves();
@@ -71,6 +85,8 @@ private:
 
 		return true;
 	}
+
+	phase4::engine::common::FastVector<phase4::engine::moves::Move, 1024> moves;
 
 	Ref<ChessTheme> theme = nullptr;
 	bool is_flipped = false;
@@ -113,6 +129,8 @@ private:
 
 	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
 
+	MoveHistory move_history;
+
 	void compute_valid_moves() {
 		valid_moves.clear();
 		for (size_t i = 0; i < valid_moves_map.size(); ++i) {
@@ -141,6 +159,8 @@ public:
 
 	bool get_flipped() const;
 	void set_flipped(bool flipped);
+
+	void undo_last_move();
 
 	Ref<ChessTheme> get_theme() const;
 	void set_theme(const Ref<ChessTheme> &theme);

@@ -122,3 +122,4 @@ icon = ExtResource("6_ei1uk")
 text_overrun_behavior = 1
 
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/FlipButton" to="." method="_flip_board"]
+[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/UndoButton" to="SubViewportContainer/SubViewport/Chess2D" method="undo_last_move"]

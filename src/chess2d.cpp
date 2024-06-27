@@ -48,6 +48,11 @@ void Chess2D::_bind_methods() {
 		ClassDB::bind_method(D_METHOD(set_theme_method, theme_property), &Chess2D::set_theme);
 		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, theme_property), set_theme_method, get_theme_method);
 	}
+
+	{
+		const StringName undo_last_move_method = "undo_last_move";
+		ClassDB::bind_method(D_METHOD(undo_last_move_method), &Chess2D::undo_last_move);
+	}
 }
 
 Chess2D::Chess2D() {
@@ -524,14 +529,20 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 }
 
 String Chess2D::get_fen() const {
-	const std::string &fen = phase4::engine::fen::PositionToFen::encode(session.position());
+	using namespace phase4::engine::fen;
+
+	const std::string &fen = PositionToFen::encode(session.position());
 	return String(fen.c_str());
 }
 
 void Chess2D::set_fen(const String &fen) {
-	auto position = phase4::engine::fen::FenToPosition::parse(fen.ascii().get_data());
+	using namespace phase4::engine::board;
+	using namespace phase4::engine::fen;
+
+	const std::optional<Position>& position = FenToPosition::parse(fen.ascii().get_data());
 	ERR_FAIL_COND_MSG(!position, "Invalid fen: " + fen);
 	session.setPosition(*position);
+	move_history.reset(*position);
 	draw_flags |= DrawFlags::BOARD;
 	queue_redraw();
 }
@@ -552,6 +563,15 @@ void Chess2D::set_flipped(bool flipped) {
 	this->is_flipped = flipped;
 	draw_flags |= DrawFlags::ALL;
 	clear_animation_offsets();
+}
+
+void Chess2D::undo_last_move() {
+	ERR_FAIL_COND_MSG(moves.is_empty(), "No moves were made");
+	session.undoMove(moves.peek());
+	compute_valid_moves();
+	draw_flags |= DrawFlags::ALL;
+	moves.pop_back();
+	queue_redraw();
 }
 
 void Chess2D::set_theme(const Ref<ChessTheme> &theme) {
