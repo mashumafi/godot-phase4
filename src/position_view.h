@@ -6,6 +6,7 @@
 
 namespace phase4::engine::board {
 
+using AlgebraicNotation = char[8];
 using SquareOffset = std::array<phase4::engine::common::Square, 64>;
 
 struct PieceAndSquareOffset {
@@ -29,7 +30,7 @@ struct PieceAndSquareOffset {
 };
 
 struct AlgebraicPieceAndSquareOffset : public PieceAndSquareOffset {
-	std::string move;
+	AlgebraicNotation move = "";
 };
 
 class PositionView {
@@ -74,19 +75,21 @@ public:
 			walls = m_session.position().walls();
 			for (size_t i = 0; i < moveResult.moved.size(); ++i) {
 				if ((walls & moveResult.moved[i].to.asBitboard()) == 0) {
-					result.pieces[moveResult.moved[i].to] = moveResult.moved[i].from /* - moveResult.moved[i].to*/;
+					result.pieces[moveResult.moved[i].to] = moveResult.moved[i].from;
 				} else {
 					const Square slide_to(Square(moveResult.moved[i].to).asFieldIndex() + fixedSlide);
-					result.pieces[slide_to] = moveResult.moved[i].from /* - slide_to*/;
+					result.pieces[slide_to] = moveResult.moved[i].from;
 				}
 			}
 		} else {
 			for (size_t i = 0; i < moveResult.moved.size(); ++i) {
-				result.pieces[moveResult.moved[i].to] = moveResult.moved[i].from /* - moveResult.moved[i].to*/;
+				result.pieces[moveResult.moved[i].to] = moveResult.moved[i].from;
 			}
 		}
 
 		computeValidMoves();
+
+        strcpy(result.move, "TODO");
 
 		return result;
 	}

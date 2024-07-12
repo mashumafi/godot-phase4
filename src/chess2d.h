@@ -45,7 +45,6 @@ private:
 		clear_animation_offsets();
 		const AlgebraicPieceAndSquareOffset &result = position.makeMove(from, to);
 		for (size_t i = 0; i < result.squares.size(); ++i) {
-			//square_animation_offsets[i] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
 			square_animation_offsets[i] = get_square_position(result.squares[i]) - get_square_position(Square(i));
 		}
 		for (size_t i = 0; i < result.pieces.size(); ++i) {
@@ -55,7 +54,8 @@ private:
 		draw_flags |= DrawFlags::BOARD;
 		queue_redraw();
 
-		return true;
+
+		return strcmp(result.move, "") != 0;
 	}
 
 	Ref<ChessTheme> theme = nullptr;
@@ -118,17 +118,13 @@ public:
 	Ref<ChessTheme> get_theme() const;
 	void set_theme(const Ref<ChessTheme> &theme);
 
-	Vector2 get_square_offset() {
-		ERR_FAIL_COND_V_MSG(theme.is_null(), Vector2(), "Chess Theme is not provided.");
-
-		const real_t offset = -theme->get_square_size() * 4;
-		return Vector2(offset, offset);
-	}
-
 	Vector2 get_square_position(phase4::engine::common::Square square) {
 		using namespace phase4::engine::common;
 
-		const Vector2 start_position = get_square_offset();
+		ERR_FAIL_COND_V_MSG(theme.is_null(), Vector2(), "Chess Theme is not provided.");
+
+		const real_t offset = -theme->get_square_size() * 4;
+		const Vector2 start_position(offset, offset);
 
 		const FieldIndex field = (is_flipped ? square.flipped() : square).asFieldIndex();
 		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y) + square_animation_offsets[square];
