@@ -3,13 +3,12 @@
 
 #include "canvas_item_util.h"
 #include "chess_theme.h"
-#include "move_history.h"
+#include "position_view.h" // TODO: Move into phase4::engine::board
 
 #include <godot_cpp/classes/input_event.hpp>
 #include <godot_cpp/classes/node2d.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
 
-#include <phase4/engine/board/session.h>
 #include <phase4/engine/moves/result.h>
 
 #include <memory>
@@ -33,7 +32,7 @@ class Chess2D : public Node2D {
 		FILE_RANK = 0b10000000,
 
 		BOARD = SQUARES | PIECES | FILE_RANK,
-		ALL = 0b1111111,
+		ALL = 0b11111111,
 	};
 	int64_t draw_flags = DrawFlags::ALL;
 
@@ -43,50 +42,21 @@ private:
 		using namespace phase4::engine::moves;
 		using namespace phase4::engine::board;
 
-		const Move move(from, to, MoveFlags::QUIET);
-		const std::optional<Move> &realMove = PositionMoves::findRealMove(valid_moves, move);
-		if (!realMove) {
-			return false;
-		}
-
-		moves.push_back(*realMove);
-
 		clear_animation_offsets();
-		const Result &result = session.makeMove(*realMove);
-		if (result.slide && result.slide != FieldIndex::ZERO) {
-			Bitboard walls = session.position().walls();
-			const FieldIndex fixedSlide(result.slide->x, -result.slide->y);
-			while (walls > 0) {
-				const Square wall(Square(walls).asFieldIndex() + fixedSlide);
-				walls = walls.popLsb();
-				square_animation_offsets[wall] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
-			}
-
-			walls = session.position().walls();
-			for (size_t i = 0; i < result.moved.size(); ++i) {
-				if ((walls & result.moved[i].to.asBitboard()) == 0) {
-					piece_animation_offsets[result.moved[i].to] = get_square_position(result.moved[i].from) - get_square_position(result.moved[i].to);
-				} else {
-					const Square slide_to(Square(result.moved[i].to).asFieldIndex() + fixedSlide);
-					piece_animation_offsets[slide_to] = get_square_position(result.moved[i].from) - get_square_position(slide_to);
-				}
-			}
-
-			draw_flags |= DrawFlags::FILE_RANK;
-		} else {
-			for (size_t i = 0; i < result.moved.size(); ++i) {
-				piece_animation_offsets[result.moved[i].to] = get_square_position(result.moved[i].from) - get_square_position(result.moved[i].to);
-			}
+		const AlgebraicPieceAndSquareOffset &result = position.makeMove(from, to);
+		for (size_t i = 0; i < result.squares.size(); ++i) {
+			//square_animation_offsets[i] = (is_flipped ? -1 : 1) * Vector2(-result.slide->x, -result.slide->y) * theme->get_square_size();
+			square_animation_offsets[i] = get_square_position(result.squares[i]) - get_square_position(Square(i));
+		}
+		for (size_t i = 0; i < result.pieces.size(); ++i) {
+			piece_animation_offsets[i] = get_square_position(result.pieces[i]) - get_square_position(Square(i));
 		}
 
-		compute_valid_moves();
 		draw_flags |= DrawFlags::BOARD;
 		queue_redraw();
 
 		return true;
 	}
-
-	phase4::engine::common::FastVector<phase4::engine::moves::Move, 1024> moves;
 
 	Ref<ChessTheme> theme = nullptr;
 	bool is_flipped = false;
@@ -98,7 +68,7 @@ private:
 	std::optional<Vector2i> annotation_end_square;
 	std::unordered_set<uint16_t> annotations;
 
-	phase4::engine::board::Session session;
+	phase4::engine::board::PositionView position;
 
 	CanvasItemUtil flourish_canvas_item;
 	CanvasItemUtil squares_canvas_item;
@@ -121,27 +91,10 @@ private:
 	Ref<MultiMesh> valid_square_multimesh;
 	Ref<Mesh> drag_piece_mesh;
 
-	phase4::engine::moves::Moves valid_moves;
-	std::array<phase4::engine::common::FastVector<phase4::engine::moves::Move, 21>, 64> valid_moves_map;
-
 	std::array<Vector2, 64> square_animation_offsets;
 	std::array<Vector2, 64> piece_animation_offsets;
 
 	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
-
-	MoveHistory move_history;
-
-	void compute_valid_moves() {
-		valid_moves.clear();
-		for (size_t i = 0; i < valid_moves_map.size(); ++i) {
-			valid_moves_map[i].clear();
-		}
-
-		phase4::engine::board::PositionMoves::getValidMoves(session.position(), valid_moves);
-		for (size_t i = 0; i < valid_moves.size(); ++i) {
-			valid_moves_map[valid_moves[i].from()].push_back(valid_moves[i]);
-		}
-	}
 
 protected:
 	static void _bind_methods();
@@ -165,13 +118,17 @@ public:
 	Ref<ChessTheme> get_theme() const;
 	void set_theme(const Ref<ChessTheme> &theme);
 
-	Vector2 get_square_position(phase4::engine::common::Square square) {
-		using namespace phase4::engine::common;
-
+	Vector2 get_square_offset() {
 		ERR_FAIL_COND_V_MSG(theme.is_null(), Vector2(), "Chess Theme is not provided.");
 
 		const real_t offset = -theme->get_square_size() * 4;
-		const Vector2 start_position(offset, offset);
+		return Vector2(offset, offset);
+	}
+
+	Vector2 get_square_position(phase4::engine::common::Square square) {
+		using namespace phase4::engine::common;
+
+		const Vector2 start_position = get_square_offset();
 
 		const FieldIndex field = (is_flipped ? square.flipped() : square).asFieldIndex();
 		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y) + square_animation_offsets[square];

@@ -20,11 +20,11 @@ private:
 	};
 	struct Detail {
 		phase4::engine::board::Position position;
-		phase4::engine::moves::Result result;
+		phase4::engine::moves::Move move;
 
 		Maps maps;
 
-		void update_maps() {
+		Detail update_maps(const phase4::engine::moves::Result &result) {
 			using namespace phase4::engine::common;
 
 			if (result.slide) {
@@ -41,6 +41,10 @@ private:
 			} else {
 				for (size_t i = 0; i < result.moved.size(); ++i) {
 					maps.id_square[maps.square_id[result.moved[i].from]] = result.moved[i].to;
+					const size_t to_id = maps.square_id[result.moved[i].to];
+					if (to_id != -1) {
+						maps.id_square[to_id] = Square::INVALID;
+					}
 					maps.square_id[result.moved[i].from] = -1;
 				}
 			}
@@ -48,8 +52,15 @@ private:
 	};
 
 public:
+	struct Offsets {
+		std::array<phase4::engine::common::Square, 64> pieces;
+		std::array<phase4::engine::common::Square, 64> walls;
+	};
+
 	void reset(const phase4::engine::board::Position &position) {
 		using namespace phase4::engine::common;
+
+		index = 0;
 
 		begin_position = position;
 		begin_maps.square_id.fill(-1);
@@ -68,21 +79,33 @@ public:
 		}
 	}
 
-	void add_detail(const phase4::engine::board::Position &position, const phase4::engine::moves::Result &result) {
-		Detail detail{ position, result };
+	void add_detail(const phase4::engine::board::Position &position, const phase4::engine::moves::Move move, const phase4::engine::moves::Result &result) {
 		if (details.is_empty()) {
-			detail.maps = begin_maps;
+			details.push_back(Detail{ position, move, begin_maps }.update_maps(result));
 		} else {
-			detail.maps = details.peek().maps;
+			details.push_back(Detail{ position, move, details.peek().maps }.update_maps(result));
 		}
-		detail.update_maps();
-		details.push_back(detail);
+		index = details.size();
 	}
 
-	void undo() {
+	Offsets seek(int64_t position) {
+		Offsets offsets;
+		return offsets;
+	}
+
+	Offsets undo() {
+		Offsets offsets;
+		index = details.size();
+		return offsets;
+	}
+
+	const phase4::engine::board::Position &position() const {
+		return index == 0 ? begin_position : details[index - 1].position;
 	}
 
 private:
+	size_t index;
+
 	phase4::engine::board::Position begin_position;
 	Maps begin_maps;
 
