@@ -38,7 +38,7 @@ struct AlgebraicPieceAndSquareOffset : public PieceAndSquareOffset {
 	AlgebraicNotation move;
 
     AlgebraicPieceAndSquareOffset() : PieceAndSquareOffset() {
-        wcpcpy(move.data(), L"");
+        swprintf(move.data(), move.size(), L"");
     }
 };
 
