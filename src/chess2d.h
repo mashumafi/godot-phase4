@@ -38,12 +38,20 @@ class Chess2D : public Node2D {
 
 private:
 	bool make_move(phase4::engine::common::Square from, phase4::engine::common::Square to) {
-		using namespace phase4::engine::common;
 		using namespace phase4::engine::moves;
 		using namespace phase4::engine::board;
 
-		clear_animation_offsets();
 		const AlgebraicPieceAndSquareOffset &result = position.makeMove(from, to);
+		update_animation_offsets(result);
+
+		//return wcscmp(result.move, L"") != 0;
+		return true;
+	}
+
+	void update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result) {
+		using namespace phase4::engine::common;
+
+		clear_animation_offsets();
 		for (size_t i = 0; i < result.squares.size(); ++i) {
 			square_animation_offsets[i] = get_square_position(result.squares[i]) - get_square_position(Square(i));
 		}
@@ -53,9 +61,6 @@ private:
 
 		draw_flags |= DrawFlags::BOARD;
 		queue_redraw();
-
-
-		return strcmp(result.move, "") != 0;
 	}
 
 	Ref<ChessTheme> theme = nullptr;

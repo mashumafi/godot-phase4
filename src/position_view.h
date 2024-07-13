@@ -2,11 +2,16 @@
 #define PHASE4_ENGINE_BOARD_POSITION_VIEW_H
 
 #include <phase4/engine/board/position_moves.h>
+#include <phase4/engine/board/position_state.h>
 #include <phase4/engine/board/session.h>
+
+#include <phase4/engine/common/math.h>
 
 namespace phase4::engine::board {
 
-using AlgebraicNotation = char[8];
+constexpr wchar_t unicode_pieces[13] = L"♙♘♗♖♕♔♟♞♝♜♛♚";
+
+using AlgebraicNotation = std::array<wchar_t, 13>;
 using SquareOffset = std::array<phase4::engine::common::Square, 64>;
 
 struct PieceAndSquareOffset {
@@ -30,17 +35,83 @@ struct PieceAndSquareOffset {
 };
 
 struct AlgebraicPieceAndSquareOffset : public PieceAndSquareOffset {
-	AlgebraicNotation move = "";
+	AlgebraicNotation move;
+
+    AlgebraicPieceAndSquareOffset() : PieceAndSquareOffset() {
+        wcpcpy(move.data(), L"");
+    }
+};
+
+struct Maps {
+	std::array<size_t, 64> square_id; // Which piece id is on a square
+	std::array<phase4::engine::common::Square, 64> id_square; // Which square owns this piece id
+
+	Maps() {
+		square_id.fill(-1);
+		id_square.fill(phase4::engine::common::Square::INVALID);
+	}
+};
+struct Detail {
+    Position position;
+    moves::Move move;
+
+	Maps maps;
+
+	void update_maps(const moves::Result &result) {
+		using namespace common;
+
+		if (result.slide) {
+			for (size_t i = 0; i < result.moved.size(); ++i) {
+			}
+			if ((position.occupancySummary() & Square(*result.slide)) != 0) {
+			}
+
+			Bitboard walls = position.walls();
+			while (walls > 0) {
+				const Square wall(walls);
+				walls = walls.popLsb();
+			}
+		} else {
+			for (size_t i = 0; i < result.moved.size(); ++i) {
+				maps.id_square[maps.square_id[result.moved[i].from]] = result.moved[i].to;
+				const size_t to_id = maps.square_id[result.moved[i].to];
+				if (to_id != -1) {
+					maps.id_square[to_id] = Square::INVALID;
+				}
+				maps.square_id[result.moved[i].from] = -1;
+			}
+		}
+	}
 };
 
 class PositionView {
 public:
 	PositionView() {
-		computeValidMoves();
+		reset(PositionState::DEFAULT);
 	}
 
 	void reset(const Position &position) {
 		m_session.setPosition(position);
+
+        Detail firstDetail;
+        firstDetail.position = position;
+        firstDetail.move = moves::Move::EMPTY;
+
+		common::Bitboard occupancySummary = position.occupancySummary();
+		size_t id = 0;
+		while (occupancySummary != 0) {
+			const common::Square square(occupancySummary);
+			occupancySummary = occupancySummary.popLsb();
+
+			firstDetail.maps.square_id[square] = id;
+			firstDetail.maps.id_square[id] = square;
+			++id;
+		}
+
+		m_details.clear();
+        m_details.push_back(firstDetail);
+
+		m_current = 0;
 		computeValidMoves();
 	}
 
@@ -59,8 +130,6 @@ public:
 		if (!realMove) {
 			return result;
 		}
-
-		m_moveHistory.push_back(*realMove);
 
 		const Result &moveResult = m_session.makeMove(*realMove);
 		if (moveResult.slide && moveResult.slide != FieldIndex::ZERO) {
@@ -87,38 +156,61 @@ public:
 			}
 		}
 
+
+        Detail detail;
+        detail.move = *realMove;
+		m_details.push_back(detail);
+
 		computeValidMoves();
 
-        strcpy(result.move, "TODO");
+        if (current().colorToMove() == common::PieceColor::BLACK) {
+            // White just moved
+            swprintf(result.move.data(), result.move.size(), L"%d. TODO", (current().movesCount() / 2) % 1000);
+        } else {
+            swprintf(result.move.data(), result.move.size(), L"TODO");
+        }
 
 		return result;
 	}
 
 	PieceAndSquareOffset undo() {
 		PieceAndSquareOffset result;
-		if (m_moveHistory.is_empty()) {
+		if (m_details.size() > 1) {
 			return result;
 		}
 
-		m_session.undoMove(m_moveHistory.peek());
+		m_session.undoMove(m_details.peek().move);
 		computeValidMoves();
-		m_moveHistory.pop_back();
+		m_details.pop_back();
 
 		return result;
 	}
 
 	PieceAndSquareOffset prev() {
-		PieceAndSquareOffset result;
-		return result;
+		return seek(m_current - 1);
 	}
 
 	PieceAndSquareOffset next() {
-		PieceAndSquareOffset result;
-		return result;
+		return seek(m_current + 1);
 	}
 
 	PieceAndSquareOffset seek(size_t index) {
-		PieceAndSquareOffset result;
+        PieceAndSquareOffset result;
+		if (index > m_details.size()) {
+			return result;
+		}
+
+		// TODO: Is Off By 1?
+
+		const Maps &from = m_details[m_current].maps;
+		const Maps &to = m_details[index].maps;
+
+		for (common::Square square = common::Square::BEGIN; square != common::Square::INVALID; ++square) {
+			const size_t id = from.square_id[square];
+			if (id < to.id_square.size()) {
+				result.pieces[square] = to.id_square[id];
+			}
+		}
 		return result;
 	}
 
@@ -147,7 +239,8 @@ private:
 	moves::Moves m_validMoves;
 	std::array<common::FastVector<moves::Move, 21>, 64> m_validMovesMap;
 
-	common::FastVector<moves::Move, 1024> m_moveHistory;
+	size_t m_current;
+	phase4::engine::common::FastVector<Detail> m_details;
 };
 
 } //namespace phase4::engine::board

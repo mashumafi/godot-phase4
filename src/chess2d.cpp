@@ -563,9 +563,8 @@ void Chess2D::set_flipped(bool flipped) {
 }
 
 void Chess2D::undo_last_move() {
-	position.undo();
-	draw_flags |= DrawFlags::ALL;
-	queue_redraw();
+	const phase4::engine::board::PieceAndSquareOffset& result = position.undo();
+	update_animation_offsets(result);
 }
 
 void Chess2D::set_theme(const Ref<ChessTheme> &theme) {
