@@ -11,6 +11,7 @@
 
 #include <phase4/engine/moves/result.h>
 
+#include <cwchar>
 #include <memory>
 #include <optional>
 #include <unordered_set>
@@ -44,8 +45,7 @@ private:
 		const AlgebraicPieceAndSquareOffset &result = position.makeMove(from, to);
 		update_animation_offsets(result);
 
-		//return wcscmp(result.move, L"") != 0;
-		return true;
+		return wcscmp(result.move.data(), L"") != 0;
 	}
 
 	void update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result) {
