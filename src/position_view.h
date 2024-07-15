@@ -7,11 +7,27 @@
 
 #include <phase4/engine/common/math.h>
 
+#include <cstdint>
+#include <cwchar>
+
 namespace phase4::engine::board {
 
-constexpr wchar_t unicode_pieces[13] = L"♙♘♗♖♕♔♟♞♝♜♛♚";
+constexpr std::array<wchar_t, 12> unicode_pieces{
+	L'♙',
+	L'♘',
+	L'♗',
+	L'♖',
+	L'♕',
+	L'♔',
+	L'♟',
+	L'♞',
+	L'♝',
+	L'♜',
+	L'♛',
+	L'♚'
+};
 
-using AlgebraicNotation = std::array<wchar_t, 13>;
+using AlgebraicNotation = std::array<wchar_t, 42>;
 using SquareOffset = std::array<phase4::engine::common::Square, 64>;
 
 struct PieceAndSquareOffset {
@@ -37,9 +53,10 @@ struct PieceAndSquareOffset {
 struct AlgebraicPieceAndSquareOffset : public PieceAndSquareOffset {
 	AlgebraicNotation move;
 
-    AlgebraicPieceAndSquareOffset() : PieceAndSquareOffset() {
-        swprintf(move.data(), move.size(), L"");
-    }
+	AlgebraicPieceAndSquareOffset() :
+			PieceAndSquareOffset() {
+		swprintf(move.data(), move.size(), L"");
+	}
 };
 
 struct Maps {
@@ -52,33 +69,45 @@ struct Maps {
 	}
 };
 struct Detail {
-    Position position;
-    moves::Move move;
+	Position position;
+	moves::Move move;
 
 	Maps maps;
 
 	void update_maps(const moves::Result &result) {
 		using namespace common;
 
-		if (result.slide) {
-			for (size_t i = 0; i < result.moved.size(); ++i) {
-			}
-			if ((position.occupancySummary() & Square(*result.slide)) != 0) {
+		for (size_t i = 0; i < result.moved.size(); ++i) {
+			const size_t fromId = maps.square_id[result.moved[i].from];
+			const size_t toId = maps.square_id[result.moved[i].to];
+
+			// Update the square for the moved piece ID
+			maps.id_square[fromId] = result.moved[i].to;
+			maps.square_id[result.moved[i].to] = fromId;
+
+			// Remove the captured piece ID
+			if (toId != -1) {
+				maps.id_square[toId] = Square::INVALID;
 			}
 
+			// Remove the moved piece ID
+			maps.square_id[result.moved[i].from] = -1;
+		}
+
+		if (result.slide && result.slide != FieldIndex::ZERO) {
 			Bitboard walls = position.walls();
 			while (walls > 0) {
 				const Square wall(walls);
 				walls = walls.popLsb();
-			}
-		} else {
-			for (size_t i = 0; i < result.moved.size(); ++i) {
-				maps.id_square[maps.square_id[result.moved[i].from]] = result.moved[i].to;
-				const size_t to_id = maps.square_id[result.moved[i].to];
-				if (to_id != -1) {
-					maps.id_square[to_id] = Square::INVALID;
+
+				const size_t fromId = maps.square_id[wall];
+				if (fromId != -1) {
+					maps.id_square[fromId] = wall + result.slide->offset();
+					maps.square_id[wall + result.slide->offset()] = fromId;
+
+					// Remove the moved piece ID
+					maps.square_id[wall] = -1;
 				}
-				maps.square_id[result.moved[i].from] = -1;
 			}
 		}
 	}
@@ -90,12 +119,16 @@ public:
 		reset(PositionState::DEFAULT);
 	}
 
+	size_t size() const {
+		return m_details.size();
+	}
+
 	void reset(const Position &position) {
 		m_session.setPosition(position);
 
-        Detail firstDetail;
-        firstDetail.position = position;
-        firstDetail.move = moves::Move::EMPTY;
+		Detail firstDetail;
+		firstDetail.position = position;
+		firstDetail.move = moves::Move::EMPTY;
 
 		common::Bitboard occupancySummary = position.occupancySummary();
 		size_t id = 0;
@@ -109,14 +142,14 @@ public:
 		}
 
 		m_details.clear();
-        m_details.push_back(firstDetail);
+		m_details.push_back(firstDetail);
 
 		m_current = 0;
 		computeValidMoves();
 	}
 
 	const Position &current() const {
-		return m_session.position();
+		return m_details[m_current].position;
 	}
 
 	AlgebraicPieceAndSquareOffset makeMove(common::Square from, common::Square to) {
@@ -130,6 +163,9 @@ public:
 		if (!realMove) {
 			return result;
 		}
+
+		const PieceType pieceType = m_session.position().pieceTable(from);
+		const std::array<char, 3> &toBuffer = to.asBuffer();
 
 		const Result &moveResult = m_session.makeMove(*realMove);
 		if (moveResult.slide && moveResult.slide != FieldIndex::ZERO) {
@@ -156,69 +192,72 @@ public:
 			}
 		}
 
-
-        Detail detail;
-        detail.move = *realMove;
+		Detail detail;
+		detail.position = m_session.position();
+		detail.move = *realMove;
+		detail.maps = m_details.peek().maps;
+		detail.update_maps(moveResult);
 		m_details.push_back(detail);
+		++m_current;
 
 		computeValidMoves();
 
-        if (current().colorToMove() == common::PieceColor::BLACK) {
-            // White just moved
-            swprintf(result.move.data(), result.move.size(), L"%d. TODO", (current().movesCount() / 2) % 1000);
-        } else {
-            swprintf(result.move.data(), result.move.size(), L"TODO");
-        }
+		if (current().colorToMove() == common::PieceColor::BLACK) {
+			// White just moved
+			const uint16_t moveNumber = (current().movesCount() / 2) + 1;
+			const int rc = swprintf(result.move.data(), result.move.size(), L"%d. ", moveNumber);
+			if (rc > 0) {
+				result.move[rc] = unicode_pieces[pieceType.get_raw_value() + 6];
+				const int offset = rc + 1;
+				swprintf(result.move.data() + offset, result.move.size() - offset, L"%s", toBuffer.data());
+			}
+		} else {
+			result.move[0] = unicode_pieces[pieceType.get_raw_value()];
+			swprintf(result.move.data() + 1, result.move.size() - 1, L"%s", toBuffer.data());
+		}
 
 		return result;
 	}
 
 	PieceAndSquareOffset undo() {
 		PieceAndSquareOffset result;
-		if (m_details.size() > 1) {
+		if (m_details.size() <= 1) {
 			return result;
 		}
 
 		m_session.undoMove(m_details.peek().move);
 		computeValidMoves();
 		m_details.pop_back();
+		--m_current;
 
 		return result;
 	}
 
-	PieceAndSquareOffset prev() {
-		return seek(m_current - 1);
-	}
-
-	PieceAndSquareOffset next() {
-		return seek(m_current + 1);
-	}
-
 	PieceAndSquareOffset seek(size_t index) {
-        PieceAndSquareOffset result;
-		if (index > m_details.size()) {
+		PieceAndSquareOffset result;
+		if (index >= m_details.size()) {
 			return result;
 		}
 
 		// TODO: Is Off By 1?
 
-		const Maps &from = m_details[m_current].maps;
-		const Maps &to = m_details[index].maps;
+		const Maps &fromMap = m_details[m_current].maps;
+		const Maps &toMap = m_details[index].maps;
+		m_current = index;
 
 		for (common::Square square = common::Square::BEGIN; square != common::Square::INVALID; ++square) {
-			const size_t id = from.square_id[square];
-			if (id < to.id_square.size()) {
-				result.pieces[square] = to.id_square[id];
+			if (fromMap.id_square[square] != common::Square::INVALID && toMap.id_square[square] != common::Square::INVALID) {
+				result.pieces[toMap.id_square[square]] = fromMap.id_square[square];
 			}
 		}
 		return result;
 	}
 
-	const moves::Moves &valid_moves() const {
+	const moves::Moves &validMoves() const {
 		return m_validMoves;
 	}
 
-	const common::FastVector<moves::Move, 21> &valid_moves(common::Square square) const {
+	const common::FastVector<moves::Move, 21> &validMoves(common::Square square) const {
 		return m_validMovesMap[square];
 	}
 

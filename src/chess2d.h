@@ -11,7 +11,6 @@
 
 #include <phase4/engine/moves/result.h>
 
-#include <cwchar>
 #include <memory>
 #include <optional>
 #include <unordered_set>
@@ -38,20 +37,25 @@ class Chess2D : public Node2D {
 	int64_t draw_flags = DrawFlags::ALL;
 
 private:
+	inline static const char* SIGNAL_PIECE_MOVED = "piece_moved";
+
 	bool make_move(phase4::engine::common::Square from, phase4::engine::common::Square to) {
 		using namespace phase4::engine::moves;
 		using namespace phase4::engine::board;
 
 		const AlgebraicPieceAndSquareOffset &result = position.makeMove(from, to);
-		update_animation_offsets(result);
+		if (wcscmp(result.move.data(), L"") == 0) {
+			return false;
+		}
 
-		return wcscmp(result.move.data(), L"") != 0;
+		update_animation_offsets(result);
+		emit_signal(StringName(SIGNAL_PIECE_MOVED), String(result.move.data()), static_cast<uint64_t>(position.size() - 1));
+		return true;
 	}
 
 	void update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result) {
 		using namespace phase4::engine::common;
 
-		clear_animation_offsets();
 		for (size_t i = 0; i < result.squares.size(); ++i) {
 			square_animation_offsets[i] = get_square_position(result.squares[i]) - get_square_position(Square(i));
 		}
@@ -119,6 +123,7 @@ public:
 	void set_flipped(bool flipped);
 
 	void undo_last_move();
+	void seek_position(uint64_t index);
 
 	Ref<ChessTheme> get_theme() const;
 	void set_theme(const Ref<ChessTheme> &theme);

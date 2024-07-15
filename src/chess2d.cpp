@@ -53,6 +53,13 @@ void Chess2D::_bind_methods() {
 		const StringName undo_last_move_method = "undo_last_move";
 		ClassDB::bind_method(D_METHOD(undo_last_move_method), &Chess2D::undo_last_move);
 	}
+
+	{
+		const StringName seek_position_method = "seek_position";
+		ClassDB::bind_method(D_METHOD(seek_position_method, "index"), &Chess2D::seek_position);
+	}
+
+	ADD_SIGNAL(MethodInfo(StringName(SIGNAL_PIECE_MOVED), PropertyInfo(Variant::STRING, "notation"), PropertyInfo(Variant::INT, "index")));
 }
 
 Chess2D::Chess2D() {
@@ -233,7 +240,7 @@ void Chess2D::_draw() {
 		valid_move_squares_canvas_item.clear();
 
 		if (const std::optional<Square> &from = get_selected()) {
-			const FastVector<Move, 21> &moves = position.valid_moves(*from);
+			const FastVector<Move, 21> &moves = position.validMoves(*from);
 			for (size_t i = 0; i < moves.size(); ++i) {
 				const Move move = moves[i];
 				const Transform2D transform = Transform2D().translated(get_square_position(move.to()));
@@ -346,7 +353,7 @@ void Chess2D::_draw() {
 						continue;
 					}
 
-					const Color color = position.valid_moves(square).is_empty() ? Color("GRAY") : Color("WHITE");
+					const Color color = position.validMoves(square).is_empty() ? Color("GRAY") : Color("WHITE");
 					mesh->set_instance_color(instance, color);
 					const Vector2 piece_offset = piece_animation_offsets[square] + half_square_size;
 					mesh->set_instance_transform_2d(instance, Transform2D().translated(get_square_position(square) + piece_offset));
@@ -368,7 +375,7 @@ void Chess2D::_draw() {
 			if (highlighted_square) {
 				const Square square(FieldIndex(highlighted_square->x, 7 - highlighted_square->y));
 				const Square flippedSquare = is_flipped ? square.flipped() : square;
-				CanvasItemUtil &hover_canvas_item = position.valid_moves(flippedSquare).is_empty() ? invalid_hover_canvas_item : valid_hover_canvas_item;
+				CanvasItemUtil &hover_canvas_item = position.validMoves(flippedSquare).is_empty() ? invalid_hover_canvas_item : valid_hover_canvas_item;
 				hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
 			}
 		}
@@ -469,7 +476,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					if (const std::optional<Square> &from = get_selected()) {
 						make_move(*from, *to);
 					}
-					if (position.valid_moves(*to).is_empty()) {
+					if (position.validMoves(*to).is_empty()) {
 						selected_square.reset();
 						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 						queue_redraw();
@@ -537,7 +544,7 @@ void Chess2D::set_fen(const String &fen) {
 	using namespace phase4::engine::board;
 	using namespace phase4::engine::fen;
 
-	const std::optional<Position>& parsedPosition = FenToPosition::parse(fen.ascii().get_data());
+	const std::optional<Position> &parsedPosition = FenToPosition::parse(fen.ascii().get_data());
 	ERR_FAIL_COND_MSG(!parsedPosition, "Invalid fen: " + fen);
 	position.reset(*parsedPosition);
 	draw_flags |= DrawFlags::BOARD;
@@ -563,8 +570,12 @@ void Chess2D::set_flipped(bool flipped) {
 }
 
 void Chess2D::undo_last_move() {
-	const phase4::engine::board::PieceAndSquareOffset& result = position.undo();
+	const phase4::engine::board::PieceAndSquareOffset &result = position.undo();
 	update_animation_offsets(result);
+}
+
+void Chess2D::seek_position(uint64_t index) {
+	update_animation_offsets(position.seek(index));
 }
 
 void Chess2D::set_theme(const Ref<ChessTheme> &theme) {
