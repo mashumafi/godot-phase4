@@ -102,8 +102,10 @@ struct Detail {
 
 				const size_t fromId = maps.square_id[wall];
 				if (fromId != -1) {
-					maps.id_square[fromId] = wall + result.slide->offset();
-					maps.square_id[wall + result.slide->offset()] = fromId;
+					// Update the square for the moved piece ID
+					const Square wallOffset(wall.get_raw_value() - result.slide->offset());
+					maps.id_square[fromId] = wallOffset;
+					maps.square_id[wallOffset] = fromId;
 
 					// Remove the moved piece ID
 					maps.square_id[wall] = -1;
