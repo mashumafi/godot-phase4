@@ -230,7 +230,7 @@ public:
 		m_session.undoMove(m_details.peek().move);
 		computeValidMoves();
 
-		PieceAndSquareOffset result = calculateOffsets(m_details[m_details.size() - 1], m_details[m_details.size() - 2]);
+		const PieceAndSquareOffset& result = calculateOffsets(m_details[m_details.size() - 1], m_details[m_details.size() - 2]);
 
 		m_details.pop_back();
 		m_current = m_details.size() - 1;
