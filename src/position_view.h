@@ -223,15 +223,17 @@ public:
 	}
 
 	PieceAndSquareOffset undo() {
-		PieceAndSquareOffset result;
 		if (m_details.size() <= 1) {
-			return result;
+			return PieceAndSquareOffset();
 		}
 
 		m_session.undoMove(m_details.peek().move);
 		computeValidMoves();
+
+		PieceAndSquareOffset result = calculateOffsets(m_details[m_details.size() - 1], m_details[m_details.size() - 2]);
+
 		m_details.pop_back();
-		--m_current;
+		m_current = m_details.size() - 1;
 
 		return result;
 	}
@@ -239,16 +241,28 @@ public:
 	PieceAndSquareOffset seek(size_t index) {
 		using namespace common;
 
-		PieceAndSquareOffset result;
 		if (index >= m_details.size()) {
-			return result;
+			return PieceAndSquareOffset();
 		}
 
-		// TODO: Is Off By 1?
-
 		const Detail &fromDetail = m_details[m_current];
-		const Detail &toDetail = m_details[index];
 		m_current = index;
+		return calculateOffsets(fromDetail, m_details[index]);
+	}
+
+	const moves::Moves &validMoves() const {
+		return m_validMoves;
+	}
+
+	const common::FastVector<moves::Move, 21> &validMoves(common::Square square) const {
+		return m_validMovesMap[square];
+	}
+
+private:
+	PieceAndSquareOffset calculateOffsets(const Detail &fromDetail, const Detail &toDetail) {
+		using namespace common;
+
+		PieceAndSquareOffset result;
 
 		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
 			if (fromDetail.maps.id_square[square] != Square::INVALID && toDetail.maps.id_square[square] != common::Square::INVALID) {
@@ -271,15 +285,6 @@ public:
 		return result;
 	}
 
-	const moves::Moves &validMoves() const {
-		return m_validMoves;
-	}
-
-	const common::FastVector<moves::Move, 21> &validMoves(common::Square square) const {
-		return m_validMovesMap[square];
-	}
-
-private:
 	void computeValidMoves() {
 		m_validMoves.clear();
 		for (size_t i = 0; i < m_validMovesMap.size(); ++i) {

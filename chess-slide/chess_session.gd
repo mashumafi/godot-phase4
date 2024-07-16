@@ -11,7 +11,6 @@ func _ready() -> void:
 func _flip_board() -> void:
 	chess_board.is_flipped = not chess_board.is_flipped
 
-
 func _piece_moved(notation: String, index: int) -> void:
 	var button := Button.new()
 	button.text = notation
@@ -21,11 +20,14 @@ func _piece_moved(notation: String, index: int) -> void:
 	button.button_pressed = true
 
 	button.pressed.connect(func():
-		print("Preview index:", index)
 		chess_board.seek_position(index)
 	)
 
-
 func _undo_last_move() -> void:
+	if move_buttons.get_child_count() <= 1:
+		return
+
 	chess_board.undo_last_move()
-	# TODO: Delete last piece moved button
+	move_buttons.get_child(move_buttons.get_child_count() - 1).free()
+	move_buttons.get_child(move_buttons.get_child_count() - 1).set_pressed_no_signal(true)
+
