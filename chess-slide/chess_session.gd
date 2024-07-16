@@ -29,5 +29,6 @@ func _undo_last_move() -> void:
 
 	chess_board.undo_last_move()
 	move_buttons.get_child(move_buttons.get_child_count() - 1).free()
+	for child: Button in move_buttons.get_children():
+		child.set_pressed_no_signal(false)
 	move_buttons.get_child(move_buttons.get_child_count() - 1).set_pressed_no_signal(true)
-
