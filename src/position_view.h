@@ -6,6 +6,7 @@
 #include <phase4/engine/board/session.h>
 
 #include <phase4/engine/common/math.h>
+#include <phase4/engine/common/wall_operations.h>
 
 #include <cstdint>
 #include <cwchar>
@@ -236,6 +237,8 @@ public:
 	}
 
 	PieceAndSquareOffset seek(size_t index) {
+		using namespace common;
+
 		PieceAndSquareOffset result;
 		if (index >= m_details.size()) {
 			return result;
@@ -243,15 +246,28 @@ public:
 
 		// TODO: Is Off By 1?
 
-		const Maps &fromMap = m_details[m_current].maps;
-		const Maps &toMap = m_details[index].maps;
+		const Detail &fromDetail = m_details[m_current];
+		const Detail &toDetail = m_details[index];
 		m_current = index;
 
-		for (common::Square square = common::Square::BEGIN; square != common::Square::INVALID; ++square) {
-			if (fromMap.id_square[square] != common::Square::INVALID && toMap.id_square[square] != common::Square::INVALID) {
-				result.pieces[toMap.id_square[square]] = fromMap.id_square[square];
+		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
+			if (fromDetail.maps.id_square[square] != Square::INVALID && toDetail.maps.id_square[square] != common::Square::INVALID) {
+				result.pieces[toDetail.maps.id_square[square]] = fromDetail.maps.id_square[square];
 			}
 		}
+
+		const Bitboard fromWall = fromDetail.position.walls();
+		const Bitboard toWall = toDetail.position.walls();
+		const FieldIndex slideDir = WallOperations::SLIDE_DIR[Square(fromWall)][Square(toWall)];
+		if (slideDir != FieldIndex::ZERO) {
+			Bitboard walls = toWall;
+			while (walls > 0) {
+				const Square wall(Square(walls).asFieldIndex() + FieldIndex(slideDir.x, -slideDir.y));
+				result.squares[wall] = Square(walls);
+				walls = walls.popLsb();
+			}
+		}
+
 		return result;
 	}
 
