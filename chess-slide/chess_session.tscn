@@ -22,7 +22,7 @@ shader = ExtResource("2_t4245")
 shader_parameter/Scale = Vector2(0.01, 0.025)
 shader_parameter/Offset = null
 
-[node name="ChessSession" type="HSplitContainer"]
+[node name="ChessSession" type="HSplitContainer" node_paths=PackedStringArray("move_buttons", "chess_board")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -30,6 +30,8 @@ grow_horizontal = 2
 grow_vertical = 2
 split_offset = -600
 script = ExtResource("1_obthr")
+move_buttons = NodePath("PanelContainer/MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer/MoveButtons")
+chess_board = NodePath("SubViewportContainer/SubViewport/Chess2D")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 layout_mode = 2
@@ -93,10 +95,16 @@ horizontal_scroll_mode = 0
 
 [node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScrollContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 14
 
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScrollContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="MoveButtons" type="HFlowContainer" parent="PanelContainer/MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="FlipButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
@@ -121,4 +129,6 @@ text = "Resign"
 icon = ExtResource("6_ei1uk")
 text_overrun_behavior = 1
 
+[connection signal="piece_moved" from="SubViewportContainer/SubViewport/Chess2D" to="." method="_piece_moved"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/FlipButton" to="." method="_flip_board"]
+[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/UndoButton" to="." method="_undo_last_move"]
