@@ -53,6 +53,8 @@ private:
 	Color annotation_color;
 
 	Ref<Texture> flourish;
+	Ref<Texture> trail_texture;
+	Ref<Material> trail_material;
 	Ref<Mesh> flourish_mesh;
 
 	Ref<Mesh> highlight_mesh;
@@ -214,6 +216,18 @@ public:
 
 	void set_flourish(const Ref<Texture> &texture);
 
+	Ref<Texture> get_trail_texture() const {
+		return trail_texture;
+	}
+
+	void set_trail_texture(const Ref<Texture> &texture);
+
+	Ref<Material> get_trail_material() const {
+		return trail_material;
+	}
+
+	void set_trail_material(const Ref<Material> &material);
+
 	const Ref<Mesh> &get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to);
 
 	// The position as if the board is not centered, origin (0, 0)
@@ -313,7 +327,8 @@ public:
 		return *flourish_mesh.ptr();
 	}
 
-	BatchMultiMesh<2> create_circle();
+	BatchMultiMesh<2> create_circle() const;
+	Ref<MultiMesh> create_trail() const;
 
 	CanvasItemUtil create_slide_hint_canvas_item(const Vector2 &direction) {
 		CanvasItemUtil canvas_item;

@@ -1,4 +1,4 @@
-[gd_resource type="ChessTheme" load_steps=17 format=3 uid="uid://ckvvdwkbps6g1"]
+[gd_resource type="ChessTheme" load_steps=19 format=3 uid="uid://ckvvdwkbps6g1"]
 
 [ext_resource type="Texture2D" uid="uid://0xqslhvpf4i1" path="res://Textures/UI/BlackRook.svg" id="1_00yef"]
 [ext_resource type="Texture2D" uid="uid://bv3v8rlelr7t" path="res://Textures/UI/BlackPawn.svg" id="1_nuhi5"]
@@ -15,7 +15,9 @@
 [ext_resource type="Texture2D" uid="uid://dld8md64340dl" path="res://Textures/UI/WhiteKnight.svg" id="8_sr2o4"]
 [ext_resource type="Material" uid="uid://depvjkc4cjt8c" path="res://Shaders/danger_material.tres" id="9_3402s"]
 [ext_resource type="Texture2D" uid="uid://dkfv0vklkjryj" path="res://Textures/UI/WhitePawn.svg" id="9_d45xu"]
+[ext_resource type="Texture2D" uid="uid://iookd15iaa0b" path="res://Textures/trail_texture.tres" id="11_4e022"]
 [ext_resource type="Texture2D" uid="uid://gubmo4d7drpj" path="res://Textures/UI/WhiteRook.svg" id="11_c0s2x"]
+[ext_resource type="Material" uid="uid://pko1xrtv1dsn" path="res://Shaders/right_half_transform.tres" id="11_rxh1a"]
 
 [resource]
 white_pawn_texture = ExtResource("9_d45xu")
@@ -38,3 +40,5 @@ annotation_color = Color(0, 0.517647, 0.811765, 0.729412)
 slide_hint_material = ExtResource("7_2if8f")
 king_danger_material = ExtResource("9_3402s")
 flourish = ExtResource("6_0iiih")
+trail_texture = ExtResource("11_4e022")
+trail_material = ExtResource("11_rxh1a")

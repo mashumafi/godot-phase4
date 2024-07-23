@@ -47,6 +47,12 @@ public:
 		godot::RenderingServer::get_singleton()->canvas_item_set_parent(canvas_item, parent);
 	}
 
+	inline void set_draw_index(int32_t index) const {
+		ERR_FAIL_COND(!canvas_item.is_valid());
+
+		godot::RenderingServer::get_singleton()->canvas_item_set_draw_index(canvas_item, index);
+	}
+
 	inline void set_self_modulate(const godot::Color &color) const {
 		ERR_FAIL_COND(!canvas_item.is_valid());
 

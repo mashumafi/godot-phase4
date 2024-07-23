@@ -69,6 +69,8 @@ Chess2D::Chess2D() {
 void Chess2D::_ready() {
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
+	int32_t draw_index = 0;
+
 	const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
 	const Vector2 half_square = square_size / 2;
 	const real_t offset = -theme->get_square_size() * 4;
@@ -76,62 +78,89 @@ void Chess2D::_ready() {
 
 	flourish_canvas_item.instantiate();
 	flourish_canvas_item.set_parent(get_canvas_item());
+	flourish_canvas_item.set_draw_index(draw_index++);
 
 	squares_canvas_item.instantiate();
 	squares_canvas_item.set_parent(get_canvas_item());
+	squares_canvas_item.set_draw_index(draw_index++);
 
 	valid_square_multimesh = theme->create_square_multimesh(false);
 	valid_move_squares_canvas_item.instantiate();
 	valid_move_squares_canvas_item.set_parent(get_canvas_item());
+	valid_move_squares_canvas_item.set_draw_index(draw_index++);
 	valid_move_squares_canvas_item.set_self_modulate(Color(.75, .55, .05, .15));
 	valid_move_squares_canvas_item.set_transform(godot::Transform2D().translated(half_square));
 
 	king_danger_canvas_item.instantiate();
 	king_danger_canvas_item.set_parent(get_canvas_item());
+	king_danger_canvas_item.set_draw_index(draw_index++);
 	king_danger_canvas_item.set_material(theme->get_king_danger_material());
 
 	file_rank_canvas_item.instantiate();
 	file_rank_canvas_item.set_parent(get_canvas_item());
+	file_rank_canvas_item.set_draw_index(draw_index++);
 
 	const float slide_hint_speed = .25;
 	right_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(slide_hint_speed, 0));
 	right_slide_hint_canvas_item.set_parent(get_canvas_item());
+	right_slide_hint_canvas_item.set_draw_index(draw_index++);
 	up_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(0, -slide_hint_speed));
 	up_slide_hint_canvas_item.set_parent(get_canvas_item());
+	up_slide_hint_canvas_item.set_draw_index(draw_index++);
 	left_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(-slide_hint_speed, 0));
 	left_slide_hint_canvas_item.set_parent(get_canvas_item());
+	left_slide_hint_canvas_item.set_draw_index(draw_index++);
 	down_slide_hint_canvas_item = theme->create_slide_hint_canvas_item(Vector2(0, slide_hint_speed));
 	down_slide_hint_canvas_item.set_parent(get_canvas_item());
+	down_slide_hint_canvas_item.set_draw_index(draw_index++);
+
+	piece_trail_multimesh = theme->create_trail();
+	piece_trails_canvas_item.instantiate();
+	piece_trails_canvas_item.set_parent(get_canvas_item());
+	piece_trails_canvas_item.set_draw_index(draw_index++);
+	piece_trails_canvas_item.set_material(theme->get_trail_material());
+	piece_trails_canvas_item.add_multimesh(*piece_trail_multimesh.ptr(), *theme->get_trail_texture().ptr());
 
 	pieces_canvas_item.instantiate();
 	pieces_canvas_item.set_parent(get_canvas_item());
+	pieces_canvas_item.set_draw_index(draw_index++);
 
 	valid_circle_multimeshes = theme->create_circle();
 	valid_move_circles_canvas_item.instantiate();
 	valid_move_circles_canvas_item.set_parent(get_canvas_item());
+	valid_move_circles_canvas_item.set_draw_index(draw_index++);
 	valid_move_circles_canvas_item.set_self_modulate(Color::hex(0x666666BA));
 	valid_move_circles_canvas_item.set_transform(godot::Transform2D().translated(half_square));
 
 	valid_hover_canvas_item.instantiate();
 	valid_hover_canvas_item.set_parent(get_canvas_item());
+	valid_hover_canvas_item.set_draw_index(draw_index++);
 	valid_hover_canvas_item.set_self_modulate(Color("GREEN"));
 
 	invalid_hover_canvas_item.instantiate();
 	invalid_hover_canvas_item.set_parent(get_canvas_item());
+	invalid_hover_canvas_item.set_draw_index(draw_index++);
 	invalid_hover_canvas_item.set_self_modulate(Color("RED"));
 
 	selected_canvas_item.instantiate();
 	selected_canvas_item.set_parent(get_canvas_item());
+	selected_canvas_item.set_draw_index(draw_index++);
 	invalid_hover_canvas_item.set_self_modulate(Color("YELLOW"));
 
 	annotations_canvas_item.instantiate();
 	annotations_canvas_item.set_parent(get_canvas_item());
+	annotations_canvas_item.set_draw_index(draw_index++);
 	annotations_canvas_item.set_self_modulate(theme->get_annotation_color());
 	annotations_canvas_item.set_transform(godot::Transform2D().translated(start_position + half_square));
 
 	drag_piece_mesh = theme->create_square_mesh();
 	drag_piece_canvas_item.instantiate();
 	drag_piece_canvas_item.set_parent(get_canvas_item());
+	drag_piece_canvas_item.set_draw_index(draw_index++);
+
+	square_trail_multimesh = theme->create_trail();
+
+	clear_animation_offsets();
 }
 
 void Chess2D::_process(double delta) {
@@ -178,6 +207,32 @@ void Chess2D::_process(double delta) {
 				*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 			}
 		}
+	}
+
+	size_t piece_trail_index = 0;
+	for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
+		const Vector2 trail_begin = get_square_position(Square(piece_trail_index)) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
+		if (!piece_trail_ends[piece_trail_index].is_equal_approx(trail_begin)) {
+			break;
+		}
+	}
+
+	if (piece_trail_index < piece_trail_ends.size()) {
+		queue_redraw();
+
+		size_t instance_index = 0;
+		for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
+			const Vector2 trail_begin = get_square_position(Square(piece_trail_index)) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
+			if (piece_trail_ends[piece_trail_index].distance_squared_to(trail_begin) >= 1) {
+				const Vector2 trail_end = piece_trail_ends[piece_trail_index];
+				const float rotated = (trail_end - trail_begin).angle();
+				const float length = trail_begin.distance_to(trail_end) / theme->get_square_size() * 4;
+				piece_trail_ends[piece_trail_index] = trail_end.lerp(trail_begin, Math::min(delta * 4, 1.0));
+				piece_trail_multimesh->set_instance_transform_2d(instance_index, Transform2D().scaled(Vector2(length, 1)).rotated(rotated).translated(trail_begin));
+				++instance_index;
+			}
+		}
+		piece_trail_multimesh->set_visible_instance_count(instance_index);
 	}
 
 	if (drag_piece) {
@@ -340,7 +395,7 @@ void Chess2D::_draw() {
 				king_danger_canvas_item.add_rect(Rect2(get_square_position(Square(position.current().colorPieceMask(piece_color, PieceType::KING))), square_size), Color(1.0, 1.0, 1.0, 1.0));
 			}
 			for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
-				const Ref<MultiMesh> &mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()];
+				MultiMesh* mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()].ptr();
 				const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
 				ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
 
@@ -362,7 +417,7 @@ void Chess2D::_draw() {
 
 				if (likely(instance > 0)) {
 					mesh->set_visible_instance_count(instance);
-					pieces_canvas_item.add_multimesh(*mesh.ptr(), *texture.ptr());
+					pieces_canvas_item.add_multimesh(*mesh, *texture.ptr());
 				}
 			}
 		}
@@ -547,8 +602,9 @@ void Chess2D::set_fen(const String &fen) {
 	const std::optional<Position> &parsedPosition = FenToPosition::parse(fen.ascii().get_data());
 	ERR_FAIL_COND_MSG(!parsedPosition, "Invalid fen: " + fen);
 	position.reset(*parsedPosition);
-	draw_flags |= DrawFlags::BOARD;
-	queue_redraw();
+	if (is_inside_tree()) {
+		clear_animation_offsets();
+	}
 }
 
 Ref<ChessTheme> Chess2D::get_theme() const {

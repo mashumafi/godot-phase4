@@ -37,7 +37,7 @@ class Chess2D : public Node2D {
 	int64_t draw_flags = DrawFlags::ALL;
 
 private:
-	inline static const char* SIGNAL_PIECE_MOVED = "piece_moved";
+	inline static const char *SIGNAL_PIECE_MOVED = "piece_moved";
 
 	bool make_move(phase4::engine::common::Square from, phase4::engine::common::Square to) {
 		using namespace phase4::engine::moves;
@@ -61,6 +61,7 @@ private:
 		}
 		for (size_t i = 0; i < result.pieces.size(); ++i) {
 			piece_animation_offsets[i] = get_square_position(result.pieces[i]) - get_square_position(Square(i));
+			piece_trail_ends[Square(i)] = get_square_position(result.pieces[i]) + Vector2(.5, .5) * theme->get_square_size();
 		}
 
 		draw_flags |= DrawFlags::BOARD;
@@ -88,6 +89,7 @@ private:
 	CanvasItemUtil down_slide_hint_canvas_item;
 	CanvasItemUtil king_danger_canvas_item;
 	CanvasItemUtil file_rank_canvas_item;
+	CanvasItemUtil piece_trails_canvas_item;
 	CanvasItemUtil pieces_canvas_item;
 	CanvasItemUtil valid_move_circles_canvas_item;
 	CanvasItemUtil valid_hover_canvas_item;
@@ -99,9 +101,14 @@ private:
 	BatchMultiMesh<2> valid_circle_multimeshes;
 	Ref<MultiMesh> valid_square_multimesh;
 	Ref<Mesh> drag_piece_mesh;
+	Ref<MultiMesh> piece_trail_multimesh;
+	Ref<MultiMesh> square_trail_multimesh;
 
 	std::array<Vector2, 64> square_animation_offsets;
 	std::array<Vector2, 64> piece_animation_offsets;
+
+	std::array<Vector2, 16> square_trail_ends;
+	std::array<Vector2, 64> piece_trail_ends;
 
 	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
 
@@ -195,6 +202,14 @@ public:
 	void clear_animation_offsets() {
 		square_animation_offsets.fill(Vector2(0, 0));
 		piece_animation_offsets.fill(Vector2(0, 0));
+
+		for (size_t i = 0; i < piece_trail_ends.size(); ++i) {
+			piece_trail_ends[i] = get_square_position(phase4::engine::common::Square(i)) + Vector2(.5, .5) * theme->get_square_size();
+		}
+
+		for (size_t i = 0; i < square_trail_ends.size(); ++i) {
+			square_trail_ends[i] = get_square_position(phase4::engine::common::Square(2 * i + 2 * i / 8));
+		}
 
 		draw_flags |= DrawFlags::BOARD;
 		queue_redraw();
