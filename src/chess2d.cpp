@@ -80,6 +80,13 @@ void Chess2D::_ready() {
 	flourish_canvas_item.set_parent(get_canvas_item());
 	flourish_canvas_item.set_draw_index(draw_index++);
 
+	square_trail_multimesh = theme->create_trail();
+	square_trail_canvas_item.instantiate();
+	square_trail_canvas_item.set_parent(get_canvas_item());
+	square_trail_canvas_item.set_draw_index(draw_index++);
+	square_trail_canvas_item.set_material(theme->get_trail_material());
+	square_trail_canvas_item.add_multimesh(*square_trail_multimesh.ptr(), *theme->get_trail_texture().ptr());
+
 	squares_canvas_item.instantiate();
 	squares_canvas_item.set_parent(get_canvas_item());
 	squares_canvas_item.set_draw_index(draw_index++);
@@ -158,8 +165,6 @@ void Chess2D::_ready() {
 	drag_piece_canvas_item.set_parent(get_canvas_item());
 	drag_piece_canvas_item.set_draw_index(draw_index++);
 
-	square_trail_multimesh = theme->create_trail();
-
 	clear_animation_offsets();
 }
 
@@ -200,18 +205,38 @@ void Chess2D::_process(double delta) {
 		if (square_offset != square_animation_offsets.end()) {
 			draw_flags |= DrawFlags::BOARD;
 			queue_redraw();
+
+			do {
+				if (!square_offset->is_zero_approx()) {
+					const Square square(std::distance(square_animation_offsets.begin(), square_offset));
+					const FieldIndex field = square.asFieldIndex();
+					if (field.x % 2 == 1 && field.y % 2 == 0) {
+						slide_trail_begin = get_square_position(square) + (square_offset->normalized() * theme->get_square_size());
+					}
+					*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
+				}
+				++square_offset;
+			} while (square_offset != square_animation_offsets.end());
 		}
 
-		for (; square_offset != square_animation_offsets.end(); ++square_offset) {
-			if (*square_offset != Vector2(0, 0)) {
-				*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
-			}
+		if (slide_trail_begin.distance_squared_to(slide_trail_end) > 1) {
+			const float rotated = (slide_trail_end - slide_trail_begin).angle();
+			const float length = slide_trail_begin.distance_to(slide_trail_end) / theme->get_square_size() * 4;
+			slide_trail_end = slide_trail_end.lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
+			square_trail_multimesh->set_instance_transform_2d(0, Transform2D().scaled(Vector2(length, 3)).rotated(rotated).translated(slide_trail_begin));
+			square_trail_multimesh->set_visible_instance_count(1);
+		} else {
+			square_trail_multimesh->set_visible_instance_count(0);
 		}
 	}
 
 	size_t piece_trail_index = 0;
 	for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
-		const Vector2 trail_begin = get_square_position(Square(piece_trail_index)) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
+		const Square square(piece_trail_index);
+		if ((position.current().occupancySummary() & square.asBitboard()) == 0) {
+			continue;
+		}
+		const Vector2 trail_begin = get_square_position(square) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
 		if (!piece_trail_ends[piece_trail_index].is_equal_approx(trail_begin)) {
 			break;
 		}
@@ -222,7 +247,11 @@ void Chess2D::_process(double delta) {
 
 		size_t instance_index = 0;
 		for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
-			const Vector2 trail_begin = get_square_position(Square(piece_trail_index)) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
+			const Square square(piece_trail_index);
+			if ((position.current().occupancySummary() & square.asBitboard()) == 0) {
+				continue;
+			}
+			const Vector2 trail_begin = get_square_position(square) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
 			if (piece_trail_ends[piece_trail_index].distance_squared_to(trail_begin) >= 1) {
 				const Vector2 trail_end = piece_trail_ends[piece_trail_index];
 				const float rotated = (trail_end - trail_begin).angle();
@@ -395,7 +424,7 @@ void Chess2D::_draw() {
 				king_danger_canvas_item.add_rect(Rect2(get_square_position(Square(position.current().colorPieceMask(piece_color, PieceType::KING))), square_size), Color(1.0, 1.0, 1.0, 1.0));
 			}
 			for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
-				MultiMesh* mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()].ptr();
+				MultiMesh *mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()].ptr();
 				const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
 				ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
 

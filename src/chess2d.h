@@ -57,7 +57,14 @@ private:
 		using namespace phase4::engine::common;
 
 		for (size_t i = 0; i < result.squares.size(); ++i) {
-			square_animation_offsets[i] = get_square_position(result.squares[i]) - get_square_position(Square(i));
+			const Square square(i);
+			square_animation_offsets[i] = Vector2(0, 0);
+			const Vector2 offset = get_square_position(result.squares[i]) - get_square_position(square);
+			const FieldIndex field = result.squares[i].asFieldIndex();
+			if (!offset.is_zero_approx() && field.x % 2 == 1 && field.y % 2 == 0) {
+				slide_trail_end = get_square_position(result.squares[i]) + (Vector2(theme->get_square_size(), 0.0)).rotated(offset.angle());
+			}
+			square_animation_offsets[i] = offset;
 		}
 		for (size_t i = 0; i < result.pieces.size(); ++i) {
 			piece_animation_offsets[i] = get_square_position(result.pieces[i]) - get_square_position(Square(i));
@@ -81,6 +88,7 @@ private:
 	phase4::engine::board::PositionView position;
 
 	CanvasItemUtil flourish_canvas_item;
+	CanvasItemUtil square_trail_canvas_item;
 	CanvasItemUtil squares_canvas_item;
 	CanvasItemUtil valid_move_squares_canvas_item;
 	CanvasItemUtil right_slide_hint_canvas_item;
@@ -107,8 +115,9 @@ private:
 	std::array<Vector2, 64> square_animation_offsets;
 	std::array<Vector2, 64> piece_animation_offsets;
 
-	std::array<Vector2, 16> square_trail_ends;
 	std::array<Vector2, 64> piece_trail_ends;
+	Vector2 slide_trail_begin;
+	Vector2 slide_trail_end;
 
 	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
 
@@ -205,10 +214,6 @@ public:
 
 		for (size_t i = 0; i < piece_trail_ends.size(); ++i) {
 			piece_trail_ends[i] = get_square_position(phase4::engine::common::Square(i)) + Vector2(.5, .5) * theme->get_square_size();
-		}
-
-		for (size_t i = 0; i < square_trail_ends.size(); ++i) {
-			square_trail_ends[i] = get_square_position(phase4::engine::common::Square(2 * i + 2 * i / 8));
 		}
 
 		draw_flags |= DrawFlags::BOARD;
