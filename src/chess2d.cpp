@@ -210,7 +210,8 @@ void Chess2D::_process(double delta) {
 				if (!square_offset->is_zero_approx()) {
 					const Square square(std::distance(square_animation_offsets.begin(), square_offset));
 					const FieldIndex field = square.asFieldIndex();
-					if (field.x % 2 == 1 && field.y % 2 == 0) {
+					int field_mod = is_flipped ? 0 : 1;
+					if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
 						slide_trail_begin = get_square_position(square) + (square_offset->normalized() * theme->get_square_size());
 					}
 					*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));

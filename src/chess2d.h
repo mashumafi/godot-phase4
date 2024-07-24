@@ -61,7 +61,8 @@ private:
 			square_animation_offsets[i] = Vector2(0, 0);
 			const Vector2 offset = get_square_position(result.squares[i]) - get_square_position(square);
 			const FieldIndex field = result.squares[i].asFieldIndex();
-			if (!offset.is_zero_approx() && field.x % 2 == 1 && field.y % 2 == 0) {
+			int field_mod = is_flipped ? 0 : 1;
+			if (!offset.is_zero_approx() && field.x % 2 == field_mod && field.y % 2 != field_mod) {
 				slide_trail_end = get_square_position(result.squares[i]) + (Vector2(theme->get_square_size(), 0.0)).rotated(offset.angle());
 			}
 			square_animation_offsets[i] = offset;
