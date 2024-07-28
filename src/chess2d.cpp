@@ -67,6 +67,12 @@ Chess2D::Chess2D() {
 }
 
 void Chess2D::_ready() {
+}
+
+void Chess2D::theme_changed() {
+	set_process(theme.is_null());
+	set_process_input(theme.is_null());
+
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	int32_t draw_index = 0;
@@ -170,6 +176,8 @@ void Chess2D::_ready() {
 
 void Chess2D::_process(double delta) {
 	using namespace phase4::engine::common;
+
+	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	const Bitboard walls = position.current().walls();
 	if (walls != 0) {
@@ -684,8 +692,9 @@ void Chess2D::set_theme(const Ref<ChessTheme> &theme) {
 			piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()] = theme->create_square_multimesh();
 		}
 	}
-	queue_redraw();
 	if (this->theme.is_valid()) {
+		theme_changed();
+
 		Callable queue_redraw(this, "queue_redraw");
 		const Error rc = this->theme->connect("changed", queue_redraw);
 		ERR_FAIL_COND_MSG(rc != Error::OK, "Could not connect changed");

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Chess Slide"
-run/main_scene="res://chess_session.tscn"
+run/main_scene="res://game/chess_session.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
 

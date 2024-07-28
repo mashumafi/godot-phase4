@@ -239,7 +239,7 @@ public:
 
 		const Bitboard fromWall = m_details[m_current - 1].position.walls();
 		const Bitboard toWall = detail.position.walls();
-		const FieldIndex slideDir = WallOperations::SLIDE_DIR[Square(fromWall)][Square(toWall)];
+		const FieldIndex slideDir = fromWall == 0 || toWall == 0 ? FieldIndex::ZERO : WallOperations::SLIDE_DIR[Square(fromWall)][Square(toWall)];
 
 		squares.push_back(detail.move.from());
 		squares.push_back(Square(detail.move.to() + (-slideDir).offset()));
@@ -283,7 +283,7 @@ private:
 
 		const Bitboard fromWall = fromDetail.position.walls();
 		const Bitboard toWall = toDetail.position.walls();
-		const FieldIndex slideDir = WallOperations::SLIDE_DIR[Square(fromWall)][Square(toWall)];
+		const FieldIndex slideDir = fromWall == 0 || toWall == 0 ? FieldIndex::ZERO : WallOperations::SLIDE_DIR[Square(fromWall)][Square(toWall)];
 		if (slideDir != FieldIndex::ZERO) {
 			Bitboard walls = toWall;
 			while (walls > 0) {

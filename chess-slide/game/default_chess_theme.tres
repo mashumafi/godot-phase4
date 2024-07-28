@@ -1,0 +1,44 @@
+[gd_resource type="ChessTheme" load_steps=19 format=3 uid="uid://ckvvdwkbps6g1"]
+
+[ext_resource type="Texture2D" uid="uid://divasf4uo30im" path="res://Textures/UI/BlackBishop.svg" id="1_0kl6x"]
+[ext_resource type="Texture2D" uid="uid://ca44vmmucmqqq" path="res://Textures/UI/BlackKing.svg" id="2_lyg6k"]
+[ext_resource type="Texture2D" uid="uid://bqlidby262p4g" path="res://Textures/UI/BlackKnight.svg" id="3_npc8r"]
+[ext_resource type="Texture2D" uid="uid://bv3v8rlelr7t" path="res://Textures/UI/BlackPawn.svg" id="4_nqqqy"]
+[ext_resource type="Texture2D" uid="uid://bnc8vy23wcnep" path="res://Textures/UI/BlackQueen.svg" id="5_l68vo"]
+[ext_resource type="Texture2D" uid="uid://0xqslhvpf4i1" path="res://Textures/UI/BlackRook.svg" id="6_llg6b"]
+[ext_resource type="Texture2D" uid="uid://nnnsuo17gtdb" path="res://Textures/Flourish.svg" id="7_1r3xh"]
+[ext_resource type="FontFile" uid="uid://buykajmt4o4yo" path="res://Fonts/GrotesqueItalic.ttf" id="8_xiwix"]
+[ext_resource type="Material" uid="uid://depvjkc4cjt8c" path="res://Shaders/danger_material.tres" id="9_fyen0"]
+[ext_resource type="Material" uid="uid://b1l5ywkprkcgn" path="res://Shaders/SlideHint.material" id="10_th8uj"]
+[ext_resource type="Material" uid="uid://pko1xrtv1dsn" path="res://Shaders/right_half_transform.tres" id="11_r0c5v"]
+[ext_resource type="Texture2D" uid="uid://iookd15iaa0b" path="res://Textures/trail_texture.tres" id="12_g62ko"]
+[ext_resource type="Texture2D" uid="uid://cc3jhai8laitu" path="res://Textures/UI/WhiteBishop.svg" id="13_53pkw"]
+[ext_resource type="Texture2D" uid="uid://dd6ar1klgqxvq" path="res://Textures/UI/WhiteKing.svg" id="14_2qh75"]
+[ext_resource type="Texture2D" uid="uid://dld8md64340dl" path="res://Textures/UI/WhiteKnight.svg" id="15_cuo72"]
+[ext_resource type="Texture2D" uid="uid://dkfv0vklkjryj" path="res://Textures/UI/WhitePawn.svg" id="16_n676o"]
+[ext_resource type="Texture2D" uid="uid://5r4m2r8lsmid" path="res://Textures/UI/WhiteQueen.svg" id="17_pf4jp"]
+[ext_resource type="Texture2D" uid="uid://gubmo4d7drpj" path="res://Textures/UI/WhiteRook.svg" id="18_58k4a"]
+
+[resource]
+white_pawn_texture = ExtResource("16_n676o")
+white_knight_texture = ExtResource("15_cuo72")
+white_bishop_texture = ExtResource("13_53pkw")
+white_rook_texture = ExtResource("18_58k4a")
+white_queen_texture = ExtResource("17_pf4jp")
+white_king_texture = ExtResource("14_2qh75")
+black_pawn_texture = ExtResource("4_nqqqy")
+black_knight_texture = ExtResource("3_npc8r")
+black_bishop_texture = ExtResource("1_0kl6x")
+black_rook_texture = ExtResource("6_llg6b")
+black_queen_texture = ExtResource("5_l68vo")
+black_king_texture = ExtResource("2_lyg6k")
+white_square_color = Color(0.960784, 0.960784, 0.960784, 1)
+black_square_color = Color(0.180392, 0.545098, 0.341176, 1)
+square_size = 225.0
+font = ExtResource("8_xiwix")
+annotation_color = Color(0, 0.517647, 0.811765, 0.729412)
+slide_hint_material = ExtResource("10_th8uj")
+king_danger_material = ExtResource("9_fyen0")
+flourish = ExtResource("7_1r3xh")
+trail_texture = ExtResource("12_g62ko")
+trail_material = ExtResource("11_r0c5v")

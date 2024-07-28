@@ -150,6 +150,7 @@ public:
 
 	Ref<ChessTheme> get_theme() const;
 	void set_theme(const Ref<ChessTheme> &theme);
+	void theme_changed();
 
 	Vector2 get_square_position(phase4::engine::common::Square square) {
 		using namespace phase4::engine::common;
