@@ -8,8 +8,6 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
-#include <phase4/engine/moves/magic/magic_bitboards.h>
-
 using namespace godot;
 
 void initialize_gdextension_types(ModuleInitializationLevel p_level)
@@ -18,10 +16,8 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 		return;
 	}
 
-	phase4::engine::moves::magic::MagicBitboards::initWithInternalKeys();
-
-	ClassDB::register_class<Chess2D>();
 	ClassDB::register_class<ChessTheme>();
+	ClassDB::register_class<Chess2D>();
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

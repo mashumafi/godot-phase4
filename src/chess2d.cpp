@@ -59,7 +59,7 @@ void Chess2D::_bind_methods() {
 		ClassDB::bind_method(D_METHOD(seek_position_method, "index"), &Chess2D::seek_position);
 	}
 
-	ADD_SIGNAL(MethodInfo(StringName(SIGNAL_PIECE_MOVED), PropertyInfo(Variant::STRING, "notation"), PropertyInfo(Variant::INT, "index")));
+	ADD_SIGNAL(MethodInfo(StringName(SIGNAL_PIECE_MOVED), PropertyInfo(Variant::STRING, "uci_notation"), PropertyInfo(Variant::STRING, "algebraic_notation"), PropertyInfo(Variant::INT, "index")));
 }
 
 Chess2D::Chess2D() {
@@ -318,6 +318,11 @@ void Chess2D::_draw() {
 
 			squares_canvas_item.add_rect(Rect2(get_square_position(flippedSquare), square_size), color);
 		}
+
+		const auto &square_highlights = position.getCurrentMoveHighlights();
+		for (size_t i = 0; i < square_highlights.size(); ++i) {
+			squares_canvas_item.add_rect(Rect2(get_square_position(square_highlights[i]), square_size), Color(0, 0, 0.8, .2));
+		}
 	}
 
 	if (draw_flags & DrawFlags::VALID_MOVES) {
@@ -559,13 +564,13 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 			if (mouse_button->is_pressed()) {
 				if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
-						make_move(*from, *to);
+						_make_move(Move(*from, *to, MoveFlags::QUIET));
 					}
 					if (position.validMoves(*to).is_empty()) {
 						selected_square.reset();
 						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 						queue_redraw();
-					} else {
+					} else if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
 						selected_square = mouse_square_transform;
 						drag_piece = mouse_square_transform;
 
@@ -584,7 +589,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 
 				if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
-						if (make_move(*from, *to)) {
+						if (_make_move(Move(*from, *to, MoveFlags::QUIET))) {
 							selected_square.reset();
 							draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 							queue_redraw();
