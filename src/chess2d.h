@@ -39,17 +39,23 @@ class Chess2D : public Node2D {
 private:
 	inline static const char *SIGNAL_PIECE_MOVED = "piece_moved";
 
-	bool make_move(phase4::engine::common::Square from, phase4::engine::common::Square to) {
+	bool _make_move(phase4::engine::moves::Move move) {
 		using namespace phase4::engine::moves;
 		using namespace phase4::engine::board;
 
-		const AlgebraicPieceAndSquareOffset &result = position.makeMove(from, to);
-		if (wcscmp(result.move.data(), L"") == 0) {
+		const AlgebraicPieceAndSquareOffset &result = position.makeMove(move);
+		if (strcmp(result.algebraic_notation.data(), "") == 0) {
 			return false;
 		}
 
 		update_animation_offsets(result);
-		emit_signal(StringName(SIGNAL_PIECE_MOVED), String(result.move.data()), static_cast<uint64_t>(position.size() - 1));
+
+		godot::PackedByteArray algebraic_notation;
+		for (const char c : result.algebraic_notation) {
+			algebraic_notation.append(c);
+		}
+
+		emit_signal(StringName(SIGNAL_PIECE_MOVED), String(move.asUciNotation().data()), algebraic_notation.get_string_from_utf8(), static_cast<uint64_t>(position.size() - 1));
 		return true;
 	}
 
@@ -201,7 +207,7 @@ public:
 	}
 
 	void toggle_annotation(phase4::engine::common::Square from, phase4::engine::common::Square to) {
-		int16_t value = from.get_raw_value() + to.get_raw_value() * 64;
+		const int16_t value = from.get_raw_value() + to.get_raw_value() * 64;
 		if (annotations.find(value) != annotations.end()) {
 			annotations.erase(value);
 		} else {

@@ -6,14 +6,14 @@ extends Node
 var _move_button_group := ButtonGroup.new()
 
 func _ready() -> void:
-	_piece_moved("*", 0)
+	_piece_moved("*", "*", 0)
 
 func _flip_board() -> void:
 	chess_board.is_flipped = not chess_board.is_flipped
 
-func _piece_moved(notation: String, index: int) -> void:
+func _piece_moved(uci_notation: String, algebraic_notation: String, index: int) -> void:
 	var button := Button.new()
-	button.text = notation
+	button.text = algebraic_notation
 	button.button_group = _move_button_group
 	button.toggle_mode = true
 	move_buttons.add_child(button)

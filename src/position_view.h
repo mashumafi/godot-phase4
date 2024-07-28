@@ -13,22 +13,6 @@
 
 namespace phase4::engine::board {
 
-constexpr std::array<wchar_t, 12> unicode_pieces{
-	L'♙',
-	L'♘',
-	L'♗',
-	L'♖',
-	L'♕',
-	L'♔',
-	L'♟',
-	L'♞',
-	L'♝',
-	L'♜',
-	L'♛',
-	L'♚'
-};
-
-using AlgebraicNotation = std::array<wchar_t, 42>;
 using SquareOffset = std::array<phase4::engine::common::Square, 64>;
 
 struct PieceAndSquareOffset {
@@ -52,11 +36,11 @@ struct PieceAndSquareOffset {
 };
 
 struct AlgebraicPieceAndSquareOffset : public PieceAndSquareOffset {
-	AlgebraicNotation move;
+	AlgebraicNotation algebraic_notation;
 
 	AlgebraicPieceAndSquareOffset() :
 			PieceAndSquareOffset() {
-		swprintf(move.data(), move.size(), L"");
+		snprintf(algebraic_notation.data(), algebraic_notation.size(), "");
 	}
 };
 
@@ -155,20 +139,22 @@ public:
 		return m_details[m_current].position;
 	}
 
-	AlgebraicPieceAndSquareOffset makeMove(common::Square from, common::Square to) {
+	AlgebraicPieceAndSquareOffset makeMove(moves::Move &move) {
 		using namespace moves;
 		using namespace common;
 
 		AlgebraicPieceAndSquareOffset result;
 
-		const Move move(from, to, MoveFlags::QUIET);
 		const std::optional<Move> &realMove = PositionMoves::findRealMove(m_validMoves, move);
 		if (!realMove) {
 			return result;
 		}
+		move = *realMove;
 
-		const PieceType pieceType = m_session.position().pieceTable(from);
-		const std::array<char, 3> &toBuffer = to.asBuffer();
+		result.algebraic_notation = PositionMoves::algebraicNotation(m_session.position(), move);
+
+		const PieceType pieceType = m_session.position().pieceTable(move.from());
+		const std::array<char, 3> &toBuffer = move.to().asBuffer();
 
 		const Result &moveResult = m_session.makeMove(*realMove);
 		if (moveResult.slide && moveResult.slide != FieldIndex::ZERO) {
@@ -201,23 +187,9 @@ public:
 		detail.maps = m_details.peek().maps;
 		detail.update_maps(moveResult);
 		m_details.push_back(detail);
-		++m_current;
+		m_current = m_details.size() - 1;
 
 		computeValidMoves();
-
-		if (current().colorToMove() == common::PieceColor::BLACK) {
-			// White just moved
-			const uint16_t moveNumber = (current().movesCount() / 2) + 1;
-			const int rc = swprintf(result.move.data(), result.move.size(), L"%d. ", moveNumber);
-			if (rc > 0) {
-				result.move[rc] = unicode_pieces[pieceType.get_raw_value() + 6];
-				const int offset = rc + 1;
-				swprintf(result.move.data() + offset, result.move.size() - offset, L"%s", toBuffer.data());
-			}
-		} else {
-			result.move[0] = unicode_pieces[pieceType.get_raw_value()];
-			swprintf(result.move.data() + 1, result.move.size() - 1, L"%s", toBuffer.data());
-		}
 
 		return result;
 	}
@@ -230,7 +202,7 @@ public:
 		m_session.undoMove(m_details.peek().move);
 		computeValidMoves();
 
-		const PieceAndSquareOffset& result = calculateOffsets(m_details[m_details.size() - 1], m_details[m_details.size() - 2]);
+		const PieceAndSquareOffset &result = calculateOffsets(m_details[m_details.size() - 1], m_details[m_details.size() - 2]);
 
 		m_details.pop_back();
 		m_current = m_details.size() - 1;
@@ -256,6 +228,48 @@ public:
 
 	const common::FastVector<moves::Move, 21> &validMoves(common::Square square) const {
 		return m_validMovesMap[square];
+	}
+
+	phase4::engine::common::FastVector<phase4::engine::common::Square, 4> getCurrentMoveHighlights() {
+		using namespace phase4::engine::common;
+		using namespace phase4::engine::moves;
+
+		FastVector<Square, 4> squares;
+		const Detail &detail = m_details[m_current];
+		if (detail.move == moves::Move::EMPTY) {
+			return squares;
+		}
+
+		const Bitboard fromWall = m_details[m_current - 1].position.walls();
+		const Bitboard toWall = detail.position.walls();
+		const FieldIndex slideDir = WallOperations::SLIDE_DIR[Square(fromWall)][Square(toWall)];
+
+		squares.push_back(detail.move.from());
+		squares.push_back(Square(detail.move.to() + (-slideDir).offset()));
+
+		// TODO: Show rook highlights
+		switch (detail.position.colorToMove().get_raw_value()) {
+			case PieceColor::BLACK.get_raw_value(): {
+				switch (detail.move.flags().get_raw_value()) {
+					case MoveFlags::KING_CASTLE.get_raw_value():
+						break;
+					case MoveFlags::QUEEN_CASTLE.get_raw_value():
+						break;
+				}
+				break;
+			}
+			case PieceColor::WHITE.get_raw_value(): {
+				switch (detail.move.flags().get_raw_value()) {
+					case MoveFlags::KING_CASTLE.get_raw_value():
+						break;
+					case MoveFlags::QUEEN_CASTLE.get_raw_value():
+						break;
+				}
+				break;
+			}
+		}
+
+		return squares;
 	}
 
 private:
