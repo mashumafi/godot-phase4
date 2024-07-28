@@ -570,7 +570,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 						selected_square.reset();
 						draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 						queue_redraw();
-					} else {
+					} else if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
 						selected_square = mouse_square_transform;
 						drag_piece = mouse_square_transform;
 

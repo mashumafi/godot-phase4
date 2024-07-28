@@ -153,9 +153,6 @@ public:
 
 		result.algebraic_notation = PositionMoves::algebraicNotation(m_session.position(), move);
 
-		const PieceType pieceType = m_session.position().pieceTable(move.from());
-		const std::array<char, 3> &toBuffer = move.to().asBuffer();
-
 		const Result &moveResult = m_session.makeMove(*realMove);
 		if (moveResult.slide && moveResult.slide != FieldIndex::ZERO) {
 			Bitboard walls = m_session.position().walls();
