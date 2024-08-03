@@ -6,7 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://in2tu2qv5ivy" path="res://Textures/UI/undo_icon.svg" id="5_4i2a0"]
 [ext_resource type="Texture2D" uid="uid://c6t61ly4oiiw4" path="res://Textures/UI/resign_icon.svg" id="6_ei1uk"]
 
-[node name="ChessSession" type="HSplitContainer" node_paths=PackedStringArray("move_buttons", "chess_board")]
+[node name="ChessSession" type="HSplitContainer" node_paths=PackedStringArray("move_buttons", "chess_board", "wall_selection")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -16,6 +16,7 @@ split_offset = -600
 script = ExtResource("1_obthr")
 move_buttons = NodePath("PanelContainer/MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer/MoveButtons")
 chess_board = NodePath("SubViewportContainer/SubViewport/ChessView/Game/Chess2D")
+wall_selection = NodePath("SubViewportContainer/SubViewport/ChessView/Game/WallSelection")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 layout_mode = 2
@@ -85,6 +86,7 @@ icon = ExtResource("6_ei1uk")
 text_overrun_behavior = 1
 
 [connection signal="piece_moved" from="SubViewportContainer/SubViewport/ChessView/Game/Chess2D" to="." method="_piece_moved"]
+[connection signal="wall_selected" from="SubViewportContainer/SubViewport/ChessView/Game/WallSelection" to="." method="_wall_selected"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/FlipButton" to="." method="_flip_board"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/UndoButton" to="." method="_undo_last_move"]
 

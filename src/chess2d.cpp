@@ -59,6 +59,16 @@ void Chess2D::_bind_methods() {
 		ClassDB::bind_method(D_METHOD(seek_position_method, "index"), &Chess2D::seek_position);
 	}
 
+	{
+		const StringName break_square_method = "break_square";
+		ClassDB::bind_method(D_METHOD(break_square_method, "square_name"), &Chess2D::break_square);
+	}
+
+	{
+		const StringName field_to_square_method = "field_to_square";
+		ClassDB::bind_static_method(class_name, D_METHOD(field_to_square_method, "file", "rank", "flip"), &Chess2D::field_to_square, false);
+	}
+
 	ADD_SIGNAL(MethodInfo(StringName(SIGNAL_PIECE_MOVED), PropertyInfo(Variant::STRING, "uci_notation"), PropertyInfo(Variant::STRING, "algebraic_notation"), PropertyInfo(Variant::INT, "index")));
 }
 

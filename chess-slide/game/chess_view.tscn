@@ -71,15 +71,7 @@ follow_viewport_enabled = true
 [node name="Chess2D" type="Chess2D" parent="Game"]
 theme = ExtResource("2_ys3v6")
 
-[node name="Camera2D" type="Camera2D" parent="Game/Chess2D"]
-zoom = Vector2(0.5, 0.5)
-
-[node name="ColorRect" type="ColorRect" parent="Game"]
-offset_left = -943.0
-offset_top = -932.0
-offset_right = 958.0
-offset_bottom = 934.0
-mouse_filter = 1
-color = Color(0.282353, 0.282353, 0.282353, 0.423529)
-
 [node name="WallSelection" parent="Game" instance=ExtResource("3_g0vjc")]
+
+[node name="Camera2D" type="Camera2D" parent="Game"]
+zoom = Vector2(0.5, 0.5)

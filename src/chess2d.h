@@ -227,6 +227,27 @@ public:
 		draw_flags |= DrawFlags::BOARD;
 		queue_redraw();
 	}
+
+	void break_square(const godot::String &square_name) {
+		using namespace phase4::engine::common;
+		ERR_FAIL_COND(square_name.length() != 2);
+
+		Square square = Square(square_name.ascii().get_data());
+		position.setWalls(square);
+		draw_flags |= DrawFlags::SQUARES;
+		queue_redraw();
+	}
+
+	void slide(const Vector2i &direction) {
+		ERR_FAIL_COND(position.current().walls() == 0);
+	}
+
+	static godot::String field_to_square(int file, int rank, bool flip = false) {
+		using namespace phase4::engine::common;
+
+		const Square square = flip ? Square(FieldIndex(file, rank)).flipped() : Square(FieldIndex(file, rank));
+		return godot::String(square.asBuffer().data());
+	}
 };
 
 } //namespace godot

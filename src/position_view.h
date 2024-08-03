@@ -269,15 +269,39 @@ public:
 		return squares;
 	}
 
+	void setWalls(common::Square square) {
+		using namespace common;
+		using namespace board;
+
+		if (m_details.size() > 1) {
+			return;
+		}
+
+		Position position = m_details[0].position;
+
+		if (position.walls() > 0) {
+			// Remove old walls
+			position.occupancySummary() &= ~position.walls();
+			position.hash() = position.hash().toggleWalls(position.walls());
+		}
+
+		position.walls() = WallOperations::SLIDE_FROM[square];
+		position.occupancySummary() |= position.walls();
+		position.hash() = position.hash().toggleWalls(position.walls());
+		reset(position);
+	}
+
 private:
-	PieceAndSquareOffset calculateOffsets(const Detail &fromDetail, const Detail &toDetail) {
+	PieceAndSquareOffset calculateOffsets(const Detail &fromDetail, const Detail &toDetail) const {
 		using namespace common;
 
 		PieceAndSquareOffset result;
 
 		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
 			if (fromDetail.maps.id_square[square] != Square::INVALID && toDetail.maps.id_square[square] != common::Square::INVALID) {
-				result.pieces[toDetail.maps.id_square[square]] = fromDetail.maps.id_square[square];
+				if (toDetail.maps.id_square[square] != fromDetail.maps.id_square[square]) {
+					result.pieces[toDetail.maps.id_square[square]] = fromDetail.maps.id_square[square];
+				}
 			}
 		}
 

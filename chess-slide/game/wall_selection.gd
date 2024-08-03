@@ -1,4 +1,4 @@
-extends Node2D
+class_name WallSelection extends Node2D
 
 signal wall_selected(file: int, rank: int)
 
@@ -118,7 +118,7 @@ func _ready() -> void:
 			area.position = Vector2(x, y) * _theme.square_size * 2 - Vector2.ONE * 4 * _theme.square_size
 			area.input_pickable = true
 
-			var selected := Vector2i(3 - x, 3 - y)
+			var selected := Vector2i(x, 3 - y)
 			area.input_event.connect(func(viewport: Node, event: InputEvent, shape_idx: int) -> void:
 				var mouseButton := event as InputEventMouseButton
 
