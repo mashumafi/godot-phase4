@@ -227,7 +227,7 @@ public:
 		return m_validMovesMap[square];
 	}
 
-	phase4::engine::common::FastVector<phase4::engine::common::Square, 4> getCurrentMoveHighlights() {
+	common::FastVector<phase4::engine::common::Square, 4> getCurrentMoveHighlights() {
 		using namespace phase4::engine::common;
 		using namespace phase4::engine::moves;
 
@@ -289,6 +289,23 @@ public:
 		position.occupancySummary() |= position.walls();
 		position.hash() = position.hash().toggleWalls(position.walls());
 		reset(position);
+	}
+
+	PieceAndSquareOffset slideWalls(common::FieldIndex wallMove) {
+		using namespace common;
+		using namespace board;
+
+		PieceAndSquareOffset offsets;
+		
+		if (m_details.size() > 1) {
+			return offsets;
+		}
+
+		Position position = m_details[0].position;
+		const PositionMoves::SlideResult result = PositionMoves::slideWall(position, wallMove);
+		reset(position);
+
+		return offsets;
 	}
 
 private:

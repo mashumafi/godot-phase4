@@ -126,7 +126,7 @@ func _ready() -> void:
 					wall_selected.emit(selected.x * 2, selected.y * 2)
 			)
 
-			var center = Vector2(
+			var center := Vector2(
 				(x - 1) * _theme.square_size * .9 * .50 - _theme.square_size / 4 + _theme.square_size * .9 * .025,
 				(y - 2) * _theme.square_size * .9 * .50 + _theme.square_size / 4 - _theme.square_size * .9 * .025,
 			)

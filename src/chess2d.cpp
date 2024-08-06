@@ -65,8 +65,18 @@ void Chess2D::_bind_methods() {
 	}
 
 	{
+		const StringName slide_squares_method = "slide_squares";
+		ClassDB::bind_method(D_METHOD(slide_squares_method, "direction"), &Chess2D::slide_squares);
+	}
+
+	{
 		const StringName field_to_square_method = "field_to_square";
 		ClassDB::bind_static_method(class_name, D_METHOD(field_to_square_method, "file", "rank", "flip"), &Chess2D::field_to_square, false);
+	}
+
+	{
+		const StringName square_to_field_method = "square_to_field";
+		ClassDB::bind_static_method(class_name, D_METHOD(square_to_field_method, "square_name", "flip"), &Chess2D::square_to_field, false);
 	}
 
 	ADD_SIGNAL(MethodInfo(StringName(SIGNAL_PIECE_MOVED), PropertyInfo(Variant::STRING, "uci_notation"), PropertyInfo(Variant::STRING, "algebraic_notation"), PropertyInfo(Variant::INT, "index")));
@@ -224,28 +234,28 @@ void Chess2D::_process(double delta) {
 			draw_flags |= DrawFlags::BOARD;
 			queue_redraw();
 
+			int32_t slide_index = 0;
 			do {
 				if (!square_offset->is_zero_approx()) {
 					const Square square(std::distance(square_animation_offsets.begin(), square_offset));
 					const FieldIndex field = square.asFieldIndex();
 					int field_mod = is_flipped ? 0 : 1;
 					if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
-						slide_trail_begin = get_square_position(square) + (square_offset->normalized() * theme->get_square_size());
+						const Vector2 slide_trail_begin = get_square_position(square) + (square_offset->normalized() * theme->get_square_size());
+
+						if (slide_trail_begin.distance_squared_to(slide_trail_end[square]) > 1) {
+							const float rotated = (slide_trail_end[square] - slide_trail_begin).angle();
+							const float length = slide_trail_begin.distance_to(slide_trail_end[square]) / theme->get_square_size() * 4;
+							slide_trail_end[square] = slide_trail_end[square].lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
+							square_trail_multimesh->set_instance_transform_2d(slide_index++, Transform2D().scaled(Vector2(length, 3)).rotated(rotated).translated(slide_trail_begin));
+						}
 					}
 					*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 				}
 				++square_offset;
 			} while (square_offset != square_animation_offsets.end());
-		}
 
-		if (slide_trail_begin.distance_squared_to(slide_trail_end) > 1) {
-			const float rotated = (slide_trail_end - slide_trail_begin).angle();
-			const float length = slide_trail_begin.distance_to(slide_trail_end) / theme->get_square_size() * 4;
-			slide_trail_end = slide_trail_end.lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
-			square_trail_multimesh->set_instance_transform_2d(0, Transform2D().scaled(Vector2(length, 3)).rotated(rotated).translated(slide_trail_begin));
-			square_trail_multimesh->set_visible_instance_count(1);
-		} else {
-			square_trail_multimesh->set_visible_instance_count(0);
+			square_trail_multimesh->set_visible_instance_count(slide_index);
 		}
 	}
 

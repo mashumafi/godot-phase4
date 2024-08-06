@@ -69,7 +69,7 @@ private:
 			const FieldIndex field = result.squares[i].asFieldIndex();
 			int field_mod = is_flipped ? 0 : 1;
 			if (!offset.is_zero_approx() && field.x % 2 == field_mod && field.y % 2 != field_mod) {
-				slide_trail_end = get_square_position(result.squares[i]) + (Vector2(theme->get_square_size(), 0.0)).rotated(offset.angle());
+				slide_trail_end[square] = get_square_position(result.squares[i]) + (Vector2(theme->get_square_size(), 0.0)).rotated(offset.angle());
 			}
 			square_animation_offsets[i] = offset;
 		}
@@ -123,8 +123,7 @@ private:
 	std::array<Vector2, 64> piece_animation_offsets;
 
 	std::array<Vector2, 64> piece_trail_ends;
-	Vector2 slide_trail_begin;
-	Vector2 slide_trail_end;
+	std::array<Vector2, 64> slide_trail_end;
 
 	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
 
@@ -230,16 +229,44 @@ public:
 
 	void break_square(const godot::String &square_name) {
 		using namespace phase4::engine::common;
+
 		ERR_FAIL_COND(square_name.length() != 2);
 
 		Square square = Square(square_name.ascii().get_data());
 		position.setWalls(square);
-		draw_flags |= DrawFlags::SQUARES;
+		draw_flags |= DrawFlags::SQUARES | DrawFlags::FILE_RANK;
 		queue_redraw();
 	}
 
-	void slide(const Vector2i &direction) {
+	void slide_squares(const Vector2i &direction) {
+		using namespace phase4::engine::common;
+
 		ERR_FAIL_COND(position.current().walls() == 0);
+		ERR_FAIL_COND(direction.x != 0 && direction.y != 0);
+		ERR_FAIL_COND(direction.x % 2 != 0 || direction.y % 2 != 0);
+
+		clear_animation_offsets();
+
+		Vector2i offset(0, 0);
+		const Vector2i step = direction.sign() * 2;
+		while (offset != direction) {
+			Bitboard walls = position.current().walls();
+			while (walls != 0) {
+				const Square wall(walls);
+				int32_t scale = is_flipped ? 1 : -1;
+				square_animation_offsets[wall] = scale * step.sign() * theme->get_square_size();
+
+				const FieldIndex target_field = wall.asFieldIndex();
+				const int field_mod = is_flipped ? 0 : 1;
+				if (target_field.x % 2 == field_mod && target_field.y % 2 != field_mod) {
+					slide_trail_end[wall] = get_square_position(wall) + scale * step * theme->get_square_size();
+				}
+
+				walls = walls.popLsb();
+			}
+			offset += step;
+			position.slideWalls(FieldIndex(step.x, step.y));
+		}
 	}
 
 	static godot::String field_to_square(int file, int rank, bool flip = false) {
@@ -247,6 +274,19 @@ public:
 
 		const Square square = flip ? Square(FieldIndex(file, rank)).flipped() : Square(FieldIndex(file, rank));
 		return godot::String(square.asBuffer().data());
+	}
+
+	static Vector2i square_to_field(const godot::String &square_name, bool flip = false) {
+		using namespace phase4::engine::common;
+
+		ERR_FAIL_COND_V(square_name.length() != 2, Vector2i());
+
+		Square square = Square(square_name.ascii().get_data());
+		if (flip) {
+			square = square.flipped();
+		}
+		const FieldIndex field = square.asFieldIndex();
+		return Vector2i(field.x, field.y);
 	}
 };
 

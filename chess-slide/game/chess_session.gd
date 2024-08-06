@@ -10,10 +10,12 @@ func _ready() -> void:
 	_piece_moved("*", "*", 0)
 	if "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" == chess_board.fen:
 		wall_selection.modulate = Color.WHITE
+		wall_selection.process_mode = Node.PROCESS_MODE_INHERIT
 		chess_board.modulate = Color.DARK_GRAY
 		chess_board.process_mode = Node.PROCESS_MODE_DISABLED
 	else:
 		wall_selection.modulate = Color.TRANSPARENT
+		wall_selection.process_mode = Node.PROCESS_MODE_DISABLED
 		chess_board.modulate = Color.WHITE
 		chess_board.process_mode = Node.PROCESS_MODE_INHERIT
 
@@ -32,6 +34,7 @@ func _piece_moved(uci_notation: String, algebraic_notation: String, index: int) 
 		chess_board.seek_position(index)
 	)
 
+
 func _undo_last_move() -> void:
 	if move_buttons.get_child_count() <= 1:
 		return
@@ -44,11 +47,17 @@ func _undo_last_move() -> void:
 
 
 func _wall_selected(file: int, rank: int) -> void:
+	_break_square(Chess2D.field_to_square(file, rank, chess_board.is_flipped))
+
+
+func _break_square(square: String) -> void:
 	var tween := create_tween()
 	tween.tween_property(wall_selection, "modulate", Color.TRANSPARENT, .25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.parallel()
 	tween.tween_property(chess_board, "modulate", Color.WHITE, .25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	var square := Chess2D.field_to_square(file, rank, chess_board.is_flipped)
-	print(square)
-	chess_board.break_square(square)
+	# wall_selection.process_mode = Node.PROCESS_MODE_DISABLED
+	var field := Chess2D.square_to_field(square)
+	chess_board.break_square(Chess2D.field_to_square(0, field.y))
+	var direction := Vector2i(-field.x / 2 * 2 if chess_board.is_flipped else -field.x, 0)
+	chess_board.slide_squares(direction)
 	chess_board.process_mode = Node.PROCESS_MODE_INHERIT
