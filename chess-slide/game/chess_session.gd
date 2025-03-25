@@ -6,6 +6,7 @@ extends Node
 
 var _move_button_group := ButtonGroup.new()
 
+
 func _ready() -> void:
 	_piece_moved("*", "*", 0)
 	if "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" == chess_board.fen:
@@ -19,8 +20,10 @@ func _ready() -> void:
 		chess_board.modulate = Color.WHITE
 		chess_board.process_mode = Node.PROCESS_MODE_INHERIT
 
+
 func _flip_board() -> void:
 	chess_board.is_flipped = not chess_board.is_flipped
+
 
 func _piece_moved(uci_notation: String, algebraic_notation: String, index: int) -> void:
 	var button := Button.new()
@@ -55,7 +58,7 @@ func _break_square(square: String) -> void:
 	tween.tween_property(wall_selection, "modulate", Color.TRANSPARENT, .25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.parallel()
 	tween.tween_property(chess_board, "modulate", Color.WHITE, .25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	# wall_selection.process_mode = Node.PROCESS_MODE_DISABLED
+	wall_selection.process_mode = Node.PROCESS_MODE_DISABLED
 	var field := Chess2D.square_to_field(square)
 	chess_board.break_square(Chess2D.field_to_square(0, field.y))
 	var direction := Vector2i(-field.x / 2 * 2 if chess_board.is_flipped else -field.x, 0)

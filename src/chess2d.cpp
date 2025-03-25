@@ -234,30 +234,36 @@ void Chess2D::_process(double delta) {
 			draw_flags |= DrawFlags::BOARD;
 			queue_redraw();
 
-			int32_t slide_index = 0;
 			do {
 				if (!square_offset->is_zero_approx()) {
-					const Square square(std::distance(square_animation_offsets.begin(), square_offset));
-					const FieldIndex field = square.asFieldIndex();
-					int field_mod = is_flipped ? 0 : 1;
-					if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
-						const Vector2 slide_trail_begin = get_square_position(square) + (square_offset->normalized() * theme->get_square_size());
-
-						if (slide_trail_begin.distance_squared_to(slide_trail_end[square]) > 1) {
-							const float rotated = (slide_trail_end[square] - slide_trail_begin).angle();
-							const float length = slide_trail_begin.distance_to(slide_trail_end[square]) / theme->get_square_size() * 4;
-							slide_trail_end[square] = slide_trail_end[square].lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
-							square_trail_multimesh->set_instance_transform_2d(slide_index++, Transform2D().scaled(Vector2(length, 3)).rotated(rotated).translated(slide_trail_begin));
-						}
-					}
 					*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 				}
 				++square_offset;
 			} while (square_offset != square_animation_offsets.end());
-
-			square_trail_multimesh->set_visible_instance_count(slide_index);
 		}
 	}
+
+	// Update sliding trails
+	int32_t slide_index = 0;
+	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
+		if ((position.current().walls() & square.asBitboard()) != 0) {
+			continue;
+		}
+
+		const FieldIndex field = square.asFieldIndex();
+		int field_mod = is_flipped ? 0 : 1;
+		if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
+			const Vector2 slide_trail_begin = get_square_position(square) + ((slide_trail_end[square] - get_square_position(square)).normalized() * theme->get_square_size());
+
+			if (slide_trail_begin.distance_squared_to(slide_trail_end[square]) > theme->get_square_size() * theme->get_square_size()) {
+				const float rotated = (slide_trail_end[square] - slide_trail_begin).angle();
+				const float length = slide_trail_begin.distance_to(slide_trail_end[square]) / theme->get_square_size() * 4;
+				slide_trail_end[square] = slide_trail_end[square].lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
+				square_trail_multimesh->set_instance_transform_2d(slide_index++, Transform2D().scaled(Vector2(length, 3)).rotated(rotated).translated(slide_trail_begin));
+			}
+		}
+	}
+	square_trail_multimesh->set_visible_instance_count(slide_index);
 
 	size_t piece_trail_index = 0;
 	for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
@@ -271,10 +277,10 @@ void Chess2D::_process(double delta) {
 		}
 	}
 
+	size_t piece_trail_instance_index = 0;
 	if (piece_trail_index < piece_trail_ends.size()) {
 		queue_redraw();
 
-		size_t instance_index = 0;
 		for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
 			const Square square(piece_trail_index);
 			if ((position.current().occupancySummary() & square.asBitboard()) == 0) {
@@ -286,12 +292,12 @@ void Chess2D::_process(double delta) {
 				const float rotated = (trail_end - trail_begin).angle();
 				const float length = trail_begin.distance_to(trail_end) / theme->get_square_size() * 4;
 				piece_trail_ends[piece_trail_index] = trail_end.lerp(trail_begin, Math::min(delta * 4, 1.0));
-				piece_trail_multimesh->set_instance_transform_2d(instance_index, Transform2D().scaled(Vector2(length, 1)).rotated(rotated).translated(trail_begin));
-				++instance_index;
+				piece_trail_multimesh->set_instance_transform_2d(piece_trail_instance_index, Transform2D().scaled(Vector2(length, 1)).rotated(rotated).translated(trail_begin));
+				++piece_trail_instance_index;
 			}
 		}
-		piece_trail_multimesh->set_visible_instance_count(instance_index);
 	}
+	piece_trail_multimesh->set_visible_instance_count(piece_trail_instance_index);
 
 	if (drag_piece) {
 		draw_flags |= DrawFlags::DRAG_PIECE;
