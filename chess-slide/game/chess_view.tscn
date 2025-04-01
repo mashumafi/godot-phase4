@@ -1,0 +1,77 @@
+[gd_scene load_steps=7 format=3 uid="uid://bnxwulu1cjt0r"]
+
+[ext_resource type="Shader" uid="uid://djd58ssw6eh8k" path="res://Shaders/moving_noise.tres" id="1_c2lfq"]
+[ext_resource type="ChessTheme" uid="uid://ckvvdwkbps6g1" path="res://game/default_chess_theme.tres" id="2_tl0j1"]
+[ext_resource type="PackedScene" uid="uid://pdl5ckt1q6xl" path="res://game/wall_selection.tscn" id="3_g0vjc"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qnlre"]
+shader = ExtResource("1_c2lfq")
+shader_parameter/Scale = Vector2(0.03, -0.025)
+shader_parameter/Offset = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kcwbj"]
+shader = ExtResource("1_c2lfq")
+shader_parameter/Scale = Vector2(0.02, -0.01)
+shader_parameter/Offset = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jygiv"]
+shader = ExtResource("1_c2lfq")
+shader_parameter/Scale = Vector2(0.01, 0.025)
+shader_parameter/Offset = 0.0
+
+[node name="ChessView" type="Node"]
+
+[node name="Background" type="CanvasLayer" parent="."]
+
+[node name="ColorRect" type="ColorRect" parent="Background"]
+material = SubResource("ShaderMaterial_qnlre")
+custom_minimum_size = Vector2(1920, 1080)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 636.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 1
+color = Color(0.121028, 0.125371, 0.247059, 0.501961)
+
+[node name="ColorRect2" type="ColorRect" parent="Background"]
+material = SubResource("ShaderMaterial_kcwbj")
+custom_minimum_size = Vector2(1920, 1080)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 636.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 1
+color = Color(0.102176, 0.296541, 0.313726, 0.501961)
+
+[node name="ColorRect3" type="ColorRect" parent="Background"]
+material = SubResource("ShaderMaterial_jygiv")
+custom_minimum_size = Vector2(1920, 1080)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 636.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 1
+color = Color(0.294271, 0.123235, 0.0774928, 0.501961)
+
+[node name="Game" type="CanvasLayer" parent="."]
+follow_viewport_enabled = true
+
+[node name="Chess2D" type="Chess2D" parent="Game"]
+theme = ExtResource("2_tl0j1")
+
+[node name="WallSelection" parent="Game" instance=ExtResource("3_g0vjc")]
+
+[node name="Camera2D" type="Camera2D" parent="Game"]
+zoom = Vector2(0.5, 0.5)

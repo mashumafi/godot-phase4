@@ -1,28 +1,12 @@
-[gd_scene load_steps=10 format=3 uid="uid://uqyd6vtjqbj5"]
+[gd_scene load_steps=6 format=3 uid="uid://uqyd6vtjqbj5"]
 
-[ext_resource type="Script" path="res://chess_session.gd" id="1_obthr"]
-[ext_resource type="Shader" uid="uid://djd58ssw6eh8k" path="res://Shaders/moving_noise.tres" id="2_t4245"]
-[ext_resource type="ChessTheme" uid="uid://ckvvdwkbps6g1" path="res://default_chess_theme.tres" id="3_daeho"]
+[ext_resource type="Script" uid="uid://dd6hvxcvrcs8i" path="res://game/chess_session.gd" id="1_obthr"]
+[ext_resource type="PackedScene" uid="uid://bnxwulu1cjt0r" path="res://game/chess_view.tscn" id="2_urwq1"]
 [ext_resource type="Texture2D" uid="uid://cn72qaw31tslh" path="res://Textures/UI/flip_icon.svg" id="4_60hl8"]
 [ext_resource type="Texture2D" uid="uid://in2tu2qv5ivy" path="res://Textures/UI/undo_icon.svg" id="5_4i2a0"]
 [ext_resource type="Texture2D" uid="uid://c6t61ly4oiiw4" path="res://Textures/UI/resign_icon.svg" id="6_ei1uk"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_0j5lg"]
-shader = ExtResource("2_t4245")
-shader_parameter/Scale = Vector2(0.03, -0.025)
-shader_parameter/Offset = null
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_xwx7p"]
-shader = ExtResource("2_t4245")
-shader_parameter/Scale = Vector2(0.02, -0.01)
-shader_parameter/Offset = null
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_ydlu6"]
-shader = ExtResource("2_t4245")
-shader_parameter/Scale = Vector2(0.01, 0.025)
-shader_parameter/Offset = null
-
-[node name="ChessSession" type="HSplitContainer" node_paths=PackedStringArray("move_buttons", "chess_board")]
+[node name="ChessSession" type="HSplitContainer" node_paths=PackedStringArray("move_buttons", "chess_board", "wall_selection")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -31,7 +15,8 @@ grow_vertical = 2
 split_offset = -600
 script = ExtResource("1_obthr")
 move_buttons = NodePath("PanelContainer/MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer/MoveButtons")
-chess_board = NodePath("SubViewportContainer/SubViewport/Chess2D")
+chess_board = NodePath("SubViewportContainer/SubViewport/ChessView/Game/Chess2D")
+wall_selection = NodePath("SubViewportContainer/SubViewport/ChessView/Game/WallSelection")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 layout_mode = 2
@@ -40,40 +25,11 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
 handle_input_locally = false
+physics_object_picking = true
 size = Vector2i(1284, 1080)
 render_target_update_mode = 4
 
-[node name="ColorRect" type="ColorRect" parent="SubViewportContainer/SubViewport"]
-material = SubResource("ShaderMaterial_0j5lg")
-offset_left = -1920.0
-offset_top = -1080.0
-offset_right = 1920.0
-offset_bottom = 1080.0
-color = Color(0.121028, 0.125371, 0.247059, 0.501961)
-
-[node name="ColorRect2" type="ColorRect" parent="SubViewportContainer/SubViewport"]
-material = SubResource("ShaderMaterial_xwx7p")
-offset_left = -1920.0
-offset_top = -1080.0
-offset_right = 2040.0
-offset_bottom = 1080.0
-color = Color(0.102176, 0.296541, 0.313726, 0.501961)
-
-[node name="ColorRect3" type="ColorRect" parent="SubViewportContainer/SubViewport"]
-material = SubResource("ShaderMaterial_ydlu6")
-offset_left = -1920.0
-offset_top = -1080.0
-offset_right = 1920.0
-offset_bottom = 1120.0
-color = Color(0.294271, 0.123235, 0.0774928, 0.501961)
-
-[node name="Chess2D" type="Chess2D" parent="SubViewportContainer/SubViewport"]
-fen = "rnbqkbnr/pppp3p/7P/4p1P1/3P2**/4pN**/PPPPPR2/RNBQKB2 b Qkq - 1 6"
-theme = ExtResource("3_daeho")
-unique_name_in_owner = true
-
-[node name="Camera2D" type="Camera2D" parent="SubViewportContainer/SubViewport"]
-zoom = Vector2(0.5, 0.5)
+[node name="ChessView" parent="SubViewportContainer/SubViewport" instance=ExtResource("2_urwq1")]
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
 layout_mode = 2
@@ -129,6 +85,9 @@ text = "Resign"
 icon = ExtResource("6_ei1uk")
 text_overrun_behavior = 1
 
-[connection signal="piece_moved" from="SubViewportContainer/SubViewport/Chess2D" to="." method="_piece_moved"]
+[connection signal="piece_moved" from="SubViewportContainer/SubViewport/ChessView/Game/Chess2D" to="." method="_piece_moved"]
+[connection signal="wall_selected" from="SubViewportContainer/SubViewport/ChessView/Game/WallSelection" to="." method="_wall_selected"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/FlipButton" to="." method="_flip_board"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/HBoxContainer/UndoButton" to="." method="_undo_last_move"]
+
+[editable path="SubViewportContainer/SubViewport/ChessView"]

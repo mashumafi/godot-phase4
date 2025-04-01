@@ -59,7 +59,70 @@ void Chess2D::_bind_methods() {
 		ClassDB::bind_method(D_METHOD(seek_position_method, "index"), &Chess2D::seek_position);
 	}
 
+	{
+		const StringName break_square_method = "break_square";
+		ClassDB::bind_method(D_METHOD(break_square_method, "square_name"), &Chess2D::break_square);
+	}
+
+	{
+		const StringName slide_squares_method = "slide_squares";
+		ClassDB::bind_method(D_METHOD(slide_squares_method, "direction"), &Chess2D::slide_squares);
+	}
+
+	{
+		const StringName field_to_square_method = "field_to_square";
+		ClassDB::bind_static_method(class_name, D_METHOD(field_to_square_method, "file", "rank", "flip"), &Chess2D::field_to_square, false);
+	}
+
+	{
+		const StringName square_to_field_method = "square_to_field";
+		ClassDB::bind_static_method(class_name, D_METHOD(square_to_field_method, "square_name", "flip"), &Chess2D::square_to_field, false);
+	}
+
 	ADD_SIGNAL(MethodInfo(StringName(SIGNAL_PIECE_MOVED), PropertyInfo(Variant::STRING, "uci_notation"), PropertyInfo(Variant::STRING, "algebraic_notation"), PropertyInfo(Variant::INT, "index")));
+}
+
+bool Chess2D::_make_move(phase4::engine::moves::Move move) {
+	using namespace phase4::engine::moves;
+	using namespace phase4::engine::board;
+
+	const AlgebraicPieceAndSquareOffset &result = position.makeMove(move);
+	if (strcmp(result.algebraic_notation.data(), "") == 0) {
+		return false;
+	}
+
+	update_animation_offsets(result);
+
+	godot::PackedByteArray algebraic_notation;
+	for (const char c : result.algebraic_notation) {
+		algebraic_notation.append(c);
+	}
+
+	emit_signal(StringName(SIGNAL_PIECE_MOVED), String(move.asUciNotation().data()), algebraic_notation.get_string_from_utf8(), static_cast<uint64_t>(position.size() - 1));
+	return true;
+}
+
+void Chess2D::update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result) {
+	using namespace phase4::engine::common;
+
+	for (size_t i = 0; i < result.squares.size(); ++i) {
+		const Square square(i);
+		square_animation_offsets[i] = Vector2(0, 0);
+		const Vector2 offset = get_square_position(result.squares[i]) - get_square_position(square);
+		const FieldIndex field = result.squares[i].asFieldIndex();
+		int field_mod = is_flipped ? 0 : 1;
+		if (!offset.is_zero_approx() && field.x % 2 == field_mod && field.y % 2 != field_mod) {
+			slide_trail_end[square] = get_square_position(result.squares[i]) + (Vector2(theme->get_square_size(), 0.0)).rotated(offset.angle());
+		}
+		square_animation_offsets[i] = offset;
+	}
+	for (size_t i = 0; i < result.pieces.size(); ++i) {
+		piece_animation_offsets[i] = get_square_position(result.pieces[i]) - get_square_position(Square(i));
+		piece_trail_ends[Square(i)] = get_square_position(result.pieces[i]) + Vector2(.5, .5) * theme->get_square_size();
+	}
+
+	draw_flags |= DrawFlags::BOARD;
+	queue_redraw();
 }
 
 Chess2D::Chess2D() {
@@ -67,6 +130,12 @@ Chess2D::Chess2D() {
 }
 
 void Chess2D::_ready() {
+}
+
+void Chess2D::theme_changed() {
+	set_process(theme.is_null());
+	set_process_input(theme.is_null());
+
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	int32_t draw_index = 0;
@@ -168,8 +237,152 @@ void Chess2D::_ready() {
 	clear_animation_offsets();
 }
 
+Vector2 Chess2D::get_square_position(phase4::engine::common::Square square) {
+	using namespace phase4::engine::common;
+
+	ERR_FAIL_COND_V_MSG(theme.is_null(), Vector2(), "Chess Theme is not provided.");
+
+	const real_t offset = -theme->get_square_size() * 4;
+	const Vector2 start_position(offset, offset);
+
+	const FieldIndex field = (is_flipped ? square.flipped() : square).asFieldIndex();
+	return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y) + square_animation_offsets[square];
+}
+
+std::optional<phase4::engine::common::Square> Chess2D::get_selected() {
+	using namespace phase4::engine::common;
+
+	if (!selected_square) {
+		return {};
+	}
+
+	Square square(FieldIndex(selected_square->x, 7 - selected_square->y));
+
+	return is_flipped ? square.flipped() : square;
+}
+
+phase4::engine::common::Square Chess2D::get_dragged() {
+	using namespace phase4::engine::common;
+
+	if (!drag_piece) {
+		return Square::INVALID;
+	}
+
+	Square square(FieldIndex(drag_piece->x, 7 - drag_piece->y));
+
+	return is_flipped ? square.flipped() : square;
+}
+
+Vector2 Chess2D::get_mouse_coordinate() const {
+	const real_t offset = -theme->get_square_size() * 4;
+	const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
+	const Vector2 start_position = Vector2(offset, offset) + get_global_position();
+	return (get_global_mouse_position() - start_position) / theme->get_square_size();
+}
+
+std::optional<phase4::engine::common::Square> Chess2D::get_mouse_square() const {
+	using namespace phase4::engine::common;
+
+	const Vector2i mouse_coordinate = get_mouse_coordinate();
+	if (!Rect2(0, 0, 8, 8).has_point(mouse_coordinate)) {
+		return {};
+	}
+
+	const Square square(FieldIndex(mouse_coordinate.x, 7 - mouse_coordinate.y));
+	return is_flipped ? square.flipped() : square;
+}
+
+void Chess2D::toggle_annotation(phase4::engine::common::Square from, phase4::engine::common::Square to) {
+	const int16_t value = from.get_raw_value() + to.get_raw_value() * 64;
+	if (annotations.find(value) != annotations.end()) {
+		annotations.erase(value);
+	} else {
+		annotations.insert(value);
+	}
+}
+
+void Chess2D::clear_animation_offsets() {
+	square_animation_offsets.fill(Vector2(0, 0));
+	piece_animation_offsets.fill(Vector2(0, 0));
+
+	for (size_t i = 0; i < piece_trail_ends.size(); ++i) {
+		piece_trail_ends[i] = get_square_position(phase4::engine::common::Square(i)) + Vector2(.5, .5) * theme->get_square_size();
+	}
+
+	for (size_t i = 0; i < slide_trail_end.size(); ++i) {
+		slide_trail_end[i] = get_square_position(phase4::engine::common::Square(i));
+	}
+
+	draw_flags |= DrawFlags::BOARD;
+	queue_redraw();
+}
+
+void Chess2D::break_square(const godot::String &square_name) {
+	using namespace phase4::engine::common;
+
+	ERR_FAIL_COND(square_name.length() != 2);
+
+	Square square = Square(square_name.ascii().get_data());
+	position.setWalls(square);
+	draw_flags |= DrawFlags::SQUARES | DrawFlags::FILE_RANK;
+	queue_redraw();
+}
+
+void Chess2D::slide_squares(const Vector2i &direction) {
+	using namespace phase4::engine::common;
+
+	ERR_FAIL_COND(position.current().walls() == 0);
+	ERR_FAIL_COND(direction.x != 0 && direction.y != 0);
+	ERR_FAIL_COND(direction.x % 2 != 0 || direction.y % 2 != 0);
+
+	clear_animation_offsets();
+
+	Vector2i offset(0, 0);
+	const Vector2i step = direction.sign() * 2;
+	while (offset != direction) {
+		Bitboard walls = position.current().walls();
+		while (walls != 0) {
+			const Square wall(walls);
+			int32_t scale = is_flipped ? 1 : -1;
+			square_animation_offsets[wall] = scale * step.sign() * theme->get_square_size();
+
+			const FieldIndex target_field = wall.asFieldIndex();
+			const int field_mod = is_flipped ? 0 : 1;
+			if (target_field.x % 2 == field_mod && target_field.y % 2 != field_mod) {
+				slide_trail_end[wall] = get_square_position(wall) + scale * step * theme->get_square_size();
+			}
+
+			walls = walls.popLsb();
+		}
+		offset += step;
+		position.slideWalls(FieldIndex(step.x, step.y));
+	}
+}
+
+godot::String Chess2D::field_to_square(int file, int rank, bool flip = false) {
+	using namespace phase4::engine::common;
+
+	const Square square = flip ? Square(FieldIndex(file, rank)).flipped() : Square(FieldIndex(file, rank));
+	return godot::String(square.asBuffer().data());
+}
+
+Vector2i Chess2D::square_to_field(const godot::String &square_name, bool flip = false) {
+	using namespace phase4::engine::common;
+
+	ERR_FAIL_COND_V(square_name.length() != 2, Vector2i());
+
+	Square square = Square(square_name.ascii().get_data());
+	if (flip) {
+		square = square.flipped();
+	}
+	const FieldIndex field = square.asFieldIndex();
+	return Vector2i(field.x, field.y);
+}
+
 void Chess2D::_process(double delta) {
 	using namespace phase4::engine::common;
+
+	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	const Bitboard walls = position.current().walls();
 	if (walls != 0) {
@@ -208,28 +421,32 @@ void Chess2D::_process(double delta) {
 
 			do {
 				if (!square_offset->is_zero_approx()) {
-					const Square square(std::distance(square_animation_offsets.begin(), square_offset));
-					const FieldIndex field = square.asFieldIndex();
-					int field_mod = is_flipped ? 0 : 1;
-					if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
-						slide_trail_begin = get_square_position(square) + (square_offset->normalized() * theme->get_square_size());
-					}
 					*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 				}
 				++square_offset;
 			} while (square_offset != square_animation_offsets.end());
 		}
+	}
 
-		if (slide_trail_begin.distance_squared_to(slide_trail_end) > 1) {
-			const float rotated = (slide_trail_end - slide_trail_begin).angle();
-			const float length = slide_trail_begin.distance_to(slide_trail_end) / theme->get_square_size() * 4;
-			slide_trail_end = slide_trail_end.lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
-			square_trail_multimesh->set_instance_transform_2d(0, Transform2D().scaled(Vector2(length, 3)).rotated(rotated).translated(slide_trail_begin));
-			square_trail_multimesh->set_visible_instance_count(1);
-		} else {
-			square_trail_multimesh->set_visible_instance_count(0);
+	// Update sliding trails
+	int32_t slide_index = 0;
+	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
+		if ((position.current().walls() & square.asBitboard()) != 0) {
+			continue;
+		}
+
+		const FieldIndex field = square.asFieldIndex();
+		int field_mod = is_flipped ? 0 : 1;
+		if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
+			const Vector2 slide_trail_begin = get_square_position(square) + ((slide_trail_end[square] - get_square_position(square)).normalized() * theme->get_square_size());
+
+			if (slide_trail_begin.distance_squared_to(slide_trail_end[square]) > theme->get_square_size() * theme->get_square_size()) {
+				slide_trail_end[square] = slide_trail_end[square].lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
+				square_trail_multimesh->set_instance_transform_2d(slide_index++, theme->transform_trail(slide_trail_begin, slide_trail_end[square], 1));
+			}
 		}
 	}
+	square_trail_multimesh->set_visible_instance_count(slide_index);
 
 	size_t piece_trail_index = 0;
 	for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
@@ -243,10 +460,10 @@ void Chess2D::_process(double delta) {
 		}
 	}
 
+	size_t piece_trail_instance_index = 0;
 	if (piece_trail_index < piece_trail_ends.size()) {
 		queue_redraw();
 
-		size_t instance_index = 0;
 		for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
 			const Square square(piece_trail_index);
 			if ((position.current().occupancySummary() & square.asBitboard()) == 0) {
@@ -254,16 +471,12 @@ void Chess2D::_process(double delta) {
 			}
 			const Vector2 trail_begin = get_square_position(square) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
 			if (piece_trail_ends[piece_trail_index].distance_squared_to(trail_begin) >= 1) {
-				const Vector2 trail_end = piece_trail_ends[piece_trail_index];
-				const float rotated = (trail_end - trail_begin).angle();
-				const float length = trail_begin.distance_to(trail_end) / theme->get_square_size() * 4;
-				piece_trail_ends[piece_trail_index] = trail_end.lerp(trail_begin, Math::min(delta * 4, 1.0));
-				piece_trail_multimesh->set_instance_transform_2d(instance_index, Transform2D().scaled(Vector2(length, 1)).rotated(rotated).translated(trail_begin));
-				++instance_index;
+				piece_trail_ends[piece_trail_index] = piece_trail_ends[piece_trail_index].lerp(trail_begin, Math::min(delta * 4, 1.0));
+				piece_trail_multimesh->set_instance_transform_2d(piece_trail_instance_index++, theme->transform_trail(trail_begin, piece_trail_ends[piece_trail_index], 1.0 / 3.0));
 			}
 		}
-		piece_trail_multimesh->set_visible_instance_count(instance_index);
 	}
+	piece_trail_multimesh->set_visible_instance_count(piece_trail_instance_index);
 
 	if (drag_piece) {
 		draw_flags |= DrawFlags::DRAG_PIECE;
@@ -387,36 +600,39 @@ void Chess2D::_draw() {
 		}
 	}
 
-	if (draw_flags & DrawFlags::SQUARES && position.current().walls() != 0) {
+	if (draw_flags & DrawFlags::SQUARES) {
 		right_slide_hint_canvas_item.clear();
 		up_slide_hint_canvas_item.clear();
 		left_slide_hint_canvas_item.clear();
 		down_slide_hint_canvas_item.clear();
-		const std::array<FieldIndex, 64> &slide_dir = WallOperations::SLIDE_DIR[position.current().walls().fastBitScan()];
-		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
-			const Rect2 rect(get_square_position(square), square_size);
-			const Color color = Color(1.1, 1.25, 1.25, .25);
 
-			const FieldIndex direction = is_flipped ? -slide_dir[square] : slide_dir[square];
-			if (direction == FieldIndex::ZERO)
-				continue;
+		if (position.current().walls() != 0) {
+			const std::array<FieldIndex, 64> &slide_dir = WallOperations::SLIDE_DIR[position.current().walls().fastBitScan()];
+			for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
+				const Rect2 rect(get_square_position(square), square_size);
+				const Color color = Color(1.1, 1.25, 1.25, .25);
 
-			switch (direction.x + direction.y * 2) {
-				case -4:
-					up_slide_hint_canvas_item.add_rect(rect, color);
-					break;
-				case -2:
-					left_slide_hint_canvas_item.add_rect(rect, color);
-					break;
-				case 2:
-					right_slide_hint_canvas_item.add_rect(rect, color);
-					break;
-				case 4:
-					down_slide_hint_canvas_item.add_rect(rect, color);
-					break;
-				default:
-					godot::UtilityFunctions::print(Vector2i(direction.x, direction.y));
-					break;
+				const FieldIndex direction = is_flipped ? -slide_dir[square] : slide_dir[square];
+				if (direction == FieldIndex::ZERO)
+					continue;
+
+				switch (direction.x + direction.y * 2) {
+					case -4:
+						up_slide_hint_canvas_item.add_rect(rect, color);
+						break;
+					case -2:
+						left_slide_hint_canvas_item.add_rect(rect, color);
+						break;
+					case 2:
+						right_slide_hint_canvas_item.add_rect(rect, color);
+						break;
+					case 4:
+						down_slide_hint_canvas_item.add_rect(rect, color);
+						break;
+					default:
+						godot::UtilityFunctions::print(Vector2i(direction.x, direction.y));
+						break;
+				}
 			}
 		}
 	}
@@ -684,8 +900,9 @@ void Chess2D::set_theme(const Ref<ChessTheme> &theme) {
 			piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()] = theme->create_square_multimesh();
 		}
 	}
-	queue_redraw();
 	if (this->theme.is_valid()) {
+		theme_changed();
+
 		Callable queue_redraw(this, "queue_redraw");
 		const Error rc = this->theme->connect("changed", queue_redraw);
 		ERR_FAIL_COND_MSG(rc != Error::OK, "Could not connect changed");

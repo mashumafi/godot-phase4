@@ -1,21 +1,14 @@
-# Godot 4+ specific ignores
+# Godot auto generated files
+*.gen.*
 .godot/
 
 # Ignore library files but not the gdextension file
-chess-slides/bin/*
-!chess-slides/bin/android
-chess-slides/bin/android/*
-!chess-slides/bin/android/.gitkeep
-!chess-slides/bin/linux
-chess-slides/bin/linux/*
-!chess-slides/bin/linux/.gitkeep
-!chess-slides/bin/macos
-chess-slides/bin/macos/*
-!chess-slides/bin/macos/.gitkeep
-!chess-slides/bin/windows
-chess-slides/bin/windows/*
-!chess-slides/bin/windows/.gitkeep
-!chess-slides/bin/*.gdextension
+chess-slide/bin/
+!chess-slide/bin/android/.gitkeep
+!chess-slide/bin/linux/.gitkeep
+!chess-slide/bin/macos/.gitkeep
+!chess-slide/bin/windows/.gitkeep
+!chess-slide/bin/*.gdextension
 .sconsign*.dblite
 
 # Ignore custom.py
@@ -23,6 +16,9 @@ custom.py
 
 # Ignore generated compile_commands.json
 compile_commands.json
+
+# Ignore files generated for documentation
+/src/gen
 
 # Binaries
 *.o
@@ -49,3 +45,6 @@ compile_commands.json
 .vscode/*
 !.vscode/extensions.json
 .DS_Store
+
+# Jetbrains
+.idea/
