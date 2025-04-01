@@ -96,52 +96,6 @@ static Ref<Mesh> create_ring_polygon(const real_t innerRadius, const real_t &out
 	return create_strip_mesh(circle_polygon, oddColor, evenColor);
 }
 
-static Ref<Mesh> create_circle_polygon(const real_t radius) {
-	static const int circle_segments = 64;
-
-	PackedVector2Array points;
-	points.resize(circle_segments + 2);
-	Vector2 *points_ptr = points.ptrw();
-	// Store circle center in the last point.
-	points_ptr[circle_segments + 1] = Vector2(0, 0);
-
-	PackedVector2Array uvs;
-	uvs.resize(points.size());
-	Vector2 *uvs_ptr  = uvs.ptrw();
-	uvs_ptr[circle_segments + 1] = Vector2(.5, .5);
-
-	const real_t circle_point_step = Math_TAU / circle_segments;
-
-	for (int i = 0; i < circle_segments + 1; i++) {
-		const real_t angle = i * circle_point_step;
-		const Vector2 rotated = Vector2(1, 0).rotated(angle);
-		points_ptr[i] = rotated * radius;
-
-		uvs_ptr[i] = rotated / 2.0 + Vector2(.5, .5);
-	}
-
-	PackedInt32Array indices;
-	indices.resize(circle_segments * 3);
-	int *indices_ptr = indices.ptrw();
-
-	for (int i = 0; i < circle_segments; i++) {
-		indices_ptr[i * 3 + 0] = circle_segments + 1;
-		indices_ptr[i * 3 + 1] = i;
-		indices_ptr[i * 3 + 2] = i + 1;
-	}
-
-	Array mesh_arrays;
-	mesh_arrays.resize(Mesh::ARRAY_MAX);
-	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
-	mesh_arrays[Mesh::ARRAY_VERTEX] = points;
-	mesh_arrays[Mesh::ARRAY_TEX_UV] = uvs;
-
-	Ref<ArrayMesh> mesh;
-	mesh.instantiate();
-	mesh->add_surface_from_arrays(Mesh::PrimitiveType::PRIMITIVE_TRIANGLES, mesh_arrays);
-	return mesh;
-}
-
 static Ref<Mesh> create_hollow_square_polygon(real_t square_size, real_t width) {
 	using namespace phase4::engine::common;
 
@@ -422,6 +376,21 @@ void ChessTheme::_bind_methods() {
 		ClassDB::bind_method(D_METHOD(set_trail_material_method, trail_material_property), &ChessTheme::set_trail_material);
 		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, trail_material_property, PROPERTY_HINT_NONE), set_trail_material_method, get_trail_material_method);
 	}
+
+	{ // Create Trail Transform
+		const StringName transform_trail_method = "transform_trail";
+		ClassDB::bind_method(D_METHOD(transform_trail_method, "begin", "end", "width"), &ChessTheme::transform_trail);
+	}
+
+	{ // Create Square Mesh
+		const StringName create_square_mesh_method = "create_square_mesh";
+		ClassDB::bind_method(D_METHOD(create_square_mesh_method), &ChessTheme::create_square_mesh);
+	}
+
+	{ // Create Circle Polygon
+		const StringName create_circle_polygon_method = "create_circle_polygon";
+		ClassDB::bind_method(D_METHOD(create_circle_polygon_method, "radius"), &ChessTheme::create_circle_polygon);
+	}
 }
 
 const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to) {
@@ -477,6 +446,12 @@ void ChessTheme::set_trail_material(const Ref<Material> &material) {
 	emit_changed();
 }
 
+Transform2D ChessTheme::transform_trail(const Vector2& begin, const Vector2& end, real_t width) {
+	const float rotated = (end - begin).angle();
+	const float length = begin.distance_to(end);
+	return Transform2D().scaled(Vector2(length, width * square_size)).rotated(rotated).translated(begin);
+}
+
 Ref<Mesh> ChessTheme::create_square_mesh() const {
 	return create_centered_square_polygon(square_size);
 }
@@ -489,6 +464,52 @@ Ref<MultiMesh> ChessTheme::create_square_multimesh(bool use_colors) const {
 	mesh->set_instance_count(64);
 	mesh->set_visible_instance_count(0);
 	mesh->set_mesh(create_square_mesh());
+	return mesh;
+}
+
+Ref<Mesh> ChessTheme::create_circle_polygon(const real_t radius) const {
+	static const int circle_segments = 64;
+
+	PackedVector2Array points;
+	points.resize(circle_segments + 2);
+	Vector2 *points_ptr = points.ptrw();
+	// Store circle center in the last point.
+	points_ptr[circle_segments + 1] = Vector2(0, 0);
+
+	PackedVector2Array uvs;
+	uvs.resize(points.size());
+	Vector2 *uvs_ptr  = uvs.ptrw();
+	uvs_ptr[circle_segments + 1] = Vector2(.5, .5);
+
+	const real_t circle_point_step = Math_TAU / circle_segments;
+
+	for (int i = 0; i < circle_segments + 1; i++) {
+		const real_t angle = i * circle_point_step;
+		const Vector2 rotated = Vector2(1, 0).rotated(angle);
+		points_ptr[i] = rotated * radius;
+
+		uvs_ptr[i] = rotated / 2.0 + Vector2(.5, .5);
+	}
+
+	PackedInt32Array indices;
+	indices.resize(circle_segments * 3);
+	int *indices_ptr = indices.ptrw();
+
+	for (int i = 0; i < circle_segments; i++) {
+		indices_ptr[i * 3 + 0] = circle_segments + 1;
+		indices_ptr[i * 3 + 1] = i;
+		indices_ptr[i * 3 + 2] = i + 1;
+	}
+
+	Array mesh_arrays;
+	mesh_arrays.resize(Mesh::ARRAY_MAX);
+	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
+	mesh_arrays[Mesh::ARRAY_VERTEX] = points;
+	mesh_arrays[Mesh::ARRAY_TEX_UV] = uvs;
+
+	Ref<ArrayMesh> mesh;
+	mesh.instantiate();
+	mesh->add_surface_from_arrays(Mesh::PrimitiveType::PRIMITIVE_TRIANGLES, mesh_arrays);
 	return mesh;
 }
 
@@ -506,11 +527,10 @@ BatchMultiMesh<2> ChessTheme::create_circle() const {
 Ref<MultiMesh> ChessTheme::create_trail() const {
 	Ref<MultiMesh> mesh;
 	mesh.instantiate();
-	const real_t radius = square_size / 4.0f;
 	mesh->set_transform_format(MultiMesh::TRANSFORM_2D);
 	mesh->set_instance_count(64);
 	mesh->set_visible_instance_count(0);
-	mesh->set_mesh(create_circle_polygon(radius));
+	mesh->set_mesh(create_circle_polygon(1));
 
 	return mesh;
 }

@@ -5,7 +5,7 @@ compatibility_minimum = "4.2"
 
 [libraries]
 
-macos.debug = "res://bin/macos/libmacos.framework/phase4.macos.template_debug"
+macos.debug = "res://bin/macos/macos.framework/libphase4.macos.template_debug.dev.universal"
 macos.release = "res://bin/macos/libmacos.framework/phase4.macos.template_release"
 ios.debug = "res://bin/libphase4.ios.template_debug.framework"
 ios.release = "res://bin/libphase4.ios.template_release.framework"

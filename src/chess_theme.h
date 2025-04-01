@@ -228,6 +228,8 @@ public:
 
 	void set_trail_material(const Ref<Material> &material);
 
+	Transform2D transform_trail(const Vector2& begin, const Vector2& end, real_t width);
+
 	const Ref<Mesh> &get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to);
 
 	// The position as if the board is not centered, origin (0, 0)
@@ -326,6 +328,8 @@ public:
 	const Mesh &get_flourish_mesh() const {
 		return *flourish_mesh.ptr();
 	}
+
+	Ref<Mesh> create_circle_polygon(const real_t radius) const;
 
 	BatchMultiMesh<2> create_circle() const;
 	Ref<MultiMesh> create_trail() const;

@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://pdl5ckt1q6xl"]
 
-[ext_resource type="Script" path="res://game/wall_selection.gd" id="1_lkcpg"]
+[ext_resource type="Script" uid="uid://ba3qj048gqdji" path="res://game/wall_selection.gd" id="1_lkcpg"]
 [ext_resource type="ChessTheme" uid="uid://ckvvdwkbps6g1" path="res://game/default_chess_theme.tres" id="2_eye7t"]
 
 [node name="WallSelection" type="Node2D"]

@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://uqyd6vtjqbj5"]
 
-[ext_resource type="Script" path="res://game/chess_session.gd" id="1_obthr"]
+[ext_resource type="Script" uid="uid://dd6hvxcvrcs8i" path="res://game/chess_session.gd" id="1_obthr"]
 [ext_resource type="PackedScene" uid="uid://bnxwulu1cjt0r" path="res://game/chess_view.tscn" id="2_urwq1"]
 [ext_resource type="Texture2D" uid="uid://cn72qaw31tslh" path="res://Textures/UI/flip_icon.svg" id="4_60hl8"]
 [ext_resource type="Texture2D" uid="uid://in2tu2qv5ivy" path="res://Textures/UI/undo_icon.svg" id="5_4i2a0"]

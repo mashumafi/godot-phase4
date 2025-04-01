@@ -191,12 +191,15 @@ public:
 		return result;
 	}
 
+	// Undo the last move
 	PieceAndSquareOffset undo() {
 		if (m_details.size() <= 1) {
 			return PieceAndSquareOffset();
 		}
 
-		m_session.undoMove(m_details.peek().move);
+		moves::Move lastMove = m_details.peek().move;
+		if (lastMove != moves::Move::EMPTY)
+			m_session.undoMove(m_details.peek().move);
 		computeValidMoves();
 
 		const PieceAndSquareOffset &result = calculateOffsets(m_details[m_details.size() - 1], m_details[m_details.size() - 2]);
@@ -207,6 +210,7 @@ public:
 		return result;
 	}
 
+	// View a specific state
 	PieceAndSquareOffset seek(size_t index) {
 		using namespace common;
 
@@ -219,14 +223,18 @@ public:
 		return calculateOffsets(fromDetail, m_details[index]);
 	}
 
+	// List of valid moves for the currently viewed state
 	const moves::Moves &validMoves() const {
 		return m_validMoves;
 	}
 
+	// List of valid moves for the currently viewed state for the requested square
 	const common::FastVector<moves::Move, 21> &validMoves(common::Square square) const {
 		return m_validMovesMap[square];
 	}
 
+	// Highlight squares involved in the currently viewed state
+	// This is 2 for normal moves and only castling will have 4 results
 	common::FastVector<phase4::engine::common::Square, 4> getCurrentMoveHighlights() {
 		using namespace phase4::engine::common;
 		using namespace phase4::engine::moves;
@@ -244,7 +252,7 @@ public:
 		squares.push_back(detail.move.from());
 		squares.push_back(Square(detail.move.to() + (-slideDir).offset()));
 
-		// TODO: Show rook highlights
+		// TODO: Show rook highlights from castling
 		switch (detail.position.colorToMove().get_raw_value()) {
 			case PieceColor::BLACK.get_raw_value(): {
 				switch (detail.move.flags().get_raw_value()) {
@@ -273,13 +281,15 @@ public:
 		using namespace common;
 		using namespace board;
 
-		if (m_details.size() > 1) {
+		if (m_details.is_empty()) {
 			return;
 		}
 
-		Position position = m_details[0].position;
+		Position position = m_details.peek().position;
 
 		if (position.walls() > 0) {
+			return; // This might not be safe if pieces get removed
+			// TODO: Allow this to happen
 			// Remove old walls
 			position.occupancySummary() &= ~position.walls();
 			position.hash() = position.hash().toggleWalls(position.walls());
@@ -288,22 +298,43 @@ public:
 		position.walls() = WallOperations::SLIDE_FROM[square];
 		position.occupancySummary() |= position.walls();
 		position.hash() = position.hash().toggleWalls(position.walls());
-		reset(position);
+
+		m_session.setPosition(position);
+
+		Detail detail;
+		detail.position = position;
+		detail.move = moves::Move::EMPTY; // No pieces moved, only squares
+		detail.maps = m_details.peek().maps; // No pieces should move
+		m_details.push_back(detail);
+		m_current = m_details.size() - 1;
+
+		computeValidMoves();
 	}
 
-	PieceAndSquareOffset slideWalls(common::FieldIndex wallMove) {
+	PieceAndSquareOffset slideWalls(common::FieldIndex wallMove, bool addHistory = false) {
 		using namespace common;
 		using namespace board;
 
 		PieceAndSquareOffset offsets;
-		
-		if (m_details.size() > 1) {
+
+		if (m_details.is_empty()) {
 			return offsets;
 		}
 
-		Position position = m_details[0].position;
+		Detail& lastDetail = m_details.peek();
+		Position position = lastDetail.position;
 		const PositionMoves::SlideResult result = PositionMoves::slideWall(position, wallMove);
-		reset(position);
+		// TODO: compute hash
+		m_session.setPosition(position);
+
+		if (addHistory) {
+			// TODO: add to history
+		} else {
+			lastDetail.position = position;
+			// TODO: update maps if pieces moved
+		}
+
+		computeValidMoves();
 
 		return offsets;
 	}

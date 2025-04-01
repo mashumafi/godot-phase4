@@ -39,48 +39,9 @@ class Chess2D : public Node2D {
 private:
 	inline static const char *SIGNAL_PIECE_MOVED = "piece_moved";
 
-	bool _make_move(phase4::engine::moves::Move move) {
-		using namespace phase4::engine::moves;
-		using namespace phase4::engine::board;
+	bool _make_move(phase4::engine::moves::Move move);
 
-		const AlgebraicPieceAndSquareOffset &result = position.makeMove(move);
-		if (strcmp(result.algebraic_notation.data(), "") == 0) {
-			return false;
-		}
-
-		update_animation_offsets(result);
-
-		godot::PackedByteArray algebraic_notation;
-		for (const char c : result.algebraic_notation) {
-			algebraic_notation.append(c);
-		}
-
-		emit_signal(StringName(SIGNAL_PIECE_MOVED), String(move.asUciNotation().data()), algebraic_notation.get_string_from_utf8(), static_cast<uint64_t>(position.size() - 1));
-		return true;
-	}
-
-	void update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result) {
-		using namespace phase4::engine::common;
-
-		for (size_t i = 0; i < result.squares.size(); ++i) {
-			const Square square(i);
-			square_animation_offsets[i] = Vector2(0, 0);
-			const Vector2 offset = get_square_position(result.squares[i]) - get_square_position(square);
-			const FieldIndex field = result.squares[i].asFieldIndex();
-			int field_mod = is_flipped ? 0 : 1;
-			if (!offset.is_zero_approx() && field.x % 2 == field_mod && field.y % 2 != field_mod) {
-				slide_trail_end[square] = get_square_position(result.squares[i]) + (Vector2(theme->get_square_size(), 0.0)).rotated(offset.angle());
-			}
-			square_animation_offsets[i] = offset;
-		}
-		for (size_t i = 0; i < result.pieces.size(); ++i) {
-			piece_animation_offsets[i] = get_square_position(result.pieces[i]) - get_square_position(Square(i));
-			piece_trail_ends[Square(i)] = get_square_position(result.pieces[i]) + Vector2(.5, .5) * theme->get_square_size();
-		}
-
-		draw_flags |= DrawFlags::BOARD;
-		queue_redraw();
-	}
+	void update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result);
 
 	Ref<ChessTheme> theme = nullptr;
 	bool is_flipped = false;
@@ -151,143 +112,26 @@ public:
 	void set_theme(const Ref<ChessTheme> &theme);
 	void theme_changed();
 
-	Vector2 get_square_position(phase4::engine::common::Square square) {
-		using namespace phase4::engine::common;
+	Vector2 get_square_position(phase4::engine::common::Square square);
 
-		ERR_FAIL_COND_V_MSG(theme.is_null(), Vector2(), "Chess Theme is not provided.");
+	std::optional<phase4::engine::common::Square> get_selected();
 
-		const real_t offset = -theme->get_square_size() * 4;
-		const Vector2 start_position(offset, offset);
+	phase4::engine::common::Square get_dragged();
 
-		const FieldIndex field = (is_flipped ? square.flipped() : square).asFieldIndex();
-		return start_position + theme->get_square_size() * Vector2(field.x, 7 - field.y) + square_animation_offsets[square];
-	}
+	Vector2 get_mouse_coordinate() const;
 
-	std::optional<phase4::engine::common::Square> get_selected() {
-		using namespace phase4::engine::common;
+	std::optional<phase4::engine::common::Square> get_mouse_square() const;
 
-		if (!selected_square) {
-			return {};
-		}
+	void toggle_annotation(phase4::engine::common::Square from, phase4::engine::common::Square to);
 
-		Square square(FieldIndex(selected_square->x, 7 - selected_square->y));
+	void clear_animation_offsets();
 
-		return is_flipped ? square.flipped() : square;
-	}
+	void break_square(const godot::String &square_name);
 
-	phase4::engine::common::Square get_dragged() {
-		using namespace phase4::engine::common;
+	void slide_squares(const Vector2i &direction);
 
-		if (!drag_piece) {
-			return Square::INVALID;
-		}
-
-		Square square(FieldIndex(drag_piece->x, 7 - drag_piece->y));
-
-		return is_flipped ? square.flipped() : square;
-	}
-
-	Vector2 get_mouse_coordinate() const {
-		const real_t offset = -theme->get_square_size() * 4;
-		const Vector2 square_size = Vector2(1, 1) * theme->get_square_size();
-		const Vector2 start_position = Vector2(offset, offset) + get_global_position();
-		return (get_global_mouse_position() - start_position) / theme->get_square_size();
-	}
-
-	std::optional<phase4::engine::common::Square> get_mouse_square() const {
-		using namespace phase4::engine::common;
-
-		const Vector2i mouse_coordinate = get_mouse_coordinate();
-		if (!Rect2(0, 0, 8, 8).has_point(mouse_coordinate)) {
-			return {};
-		}
-
-		const Square square(FieldIndex(mouse_coordinate.x, 7 - mouse_coordinate.y));
-		return is_flipped ? square.flipped() : square;
-	}
-
-	void toggle_annotation(phase4::engine::common::Square from, phase4::engine::common::Square to) {
-		const int16_t value = from.get_raw_value() + to.get_raw_value() * 64;
-		if (annotations.find(value) != annotations.end()) {
-			annotations.erase(value);
-		} else {
-			annotations.insert(value);
-		}
-	}
-
-	void clear_animation_offsets() {
-		square_animation_offsets.fill(Vector2(0, 0));
-		piece_animation_offsets.fill(Vector2(0, 0));
-
-		for (size_t i = 0; i < piece_trail_ends.size(); ++i) {
-			piece_trail_ends[i] = get_square_position(phase4::engine::common::Square(i)) + Vector2(.5, .5) * theme->get_square_size();
-		}
-
-		draw_flags |= DrawFlags::BOARD;
-		queue_redraw();
-	}
-
-	void break_square(const godot::String &square_name) {
-		using namespace phase4::engine::common;
-
-		ERR_FAIL_COND(square_name.length() != 2);
-
-		Square square = Square(square_name.ascii().get_data());
-		position.setWalls(square);
-		draw_flags |= DrawFlags::SQUARES | DrawFlags::FILE_RANK;
-		queue_redraw();
-	}
-
-	void slide_squares(const Vector2i &direction) {
-		using namespace phase4::engine::common;
-
-		ERR_FAIL_COND(position.current().walls() == 0);
-		ERR_FAIL_COND(direction.x != 0 && direction.y != 0);
-		ERR_FAIL_COND(direction.x % 2 != 0 || direction.y % 2 != 0);
-
-		clear_animation_offsets();
-
-		Vector2i offset(0, 0);
-		const Vector2i step = direction.sign() * 2;
-		while (offset != direction) {
-			Bitboard walls = position.current().walls();
-			while (walls != 0) {
-				const Square wall(walls);
-				int32_t scale = is_flipped ? 1 : -1;
-				square_animation_offsets[wall] = scale * step.sign() * theme->get_square_size();
-
-				const FieldIndex target_field = wall.asFieldIndex();
-				const int field_mod = is_flipped ? 0 : 1;
-				if (target_field.x % 2 == field_mod && target_field.y % 2 != field_mod) {
-					slide_trail_end[wall] = get_square_position(wall) + scale * step * theme->get_square_size();
-				}
-
-				walls = walls.popLsb();
-			}
-			offset += step;
-			position.slideWalls(FieldIndex(step.x, step.y));
-		}
-	}
-
-	static godot::String field_to_square(int file, int rank, bool flip = false) {
-		using namespace phase4::engine::common;
-
-		const Square square = flip ? Square(FieldIndex(file, rank)).flipped() : Square(FieldIndex(file, rank));
-		return godot::String(square.asBuffer().data());
-	}
-
-	static Vector2i square_to_field(const godot::String &square_name, bool flip = false) {
-		using namespace phase4::engine::common;
-
-		ERR_FAIL_COND_V(square_name.length() != 2, Vector2i());
-
-		Square square = Square(square_name.ascii().get_data());
-		if (flip) {
-			square = square.flipped();
-		}
-		const FieldIndex field = square.asFieldIndex();
-		return Vector2i(field.x, field.y);
-	}
+	static godot::String field_to_square(int file, int rank, bool flip) ;
+	static Vector2i square_to_field(const godot::String &square_name, bool flip);
 };
 
 } //namespace godot
