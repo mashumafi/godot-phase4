@@ -446,7 +446,7 @@ void ChessTheme::set_trail_material(const Ref<Material> &material) {
 	emit_changed();
 }
 
-Transform2D ChessTheme::transform_trail(const Vector2& begin, const Vector2& end, real_t width) {
+Transform2D ChessTheme::transform_trail(const Vector2 &begin, const Vector2 &end, real_t width) {
 	const float rotated = (end - begin).angle();
 	const float length = begin.distance_to(end);
 	return Transform2D().scaled(Vector2(length, width * square_size)).rotated(rotated).translated(begin);
@@ -478,7 +478,7 @@ Ref<Mesh> ChessTheme::create_circle_polygon(const real_t radius) const {
 
 	PackedVector2Array uvs;
 	uvs.resize(points.size());
-	Vector2 *uvs_ptr  = uvs.ptrw();
+	Vector2 *uvs_ptr = uvs.ptrw();
 	uvs_ptr[circle_segments + 1] = Vector2(.5, .5);
 
 	const real_t circle_point_step = Math_TAU / circle_segments;

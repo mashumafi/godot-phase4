@@ -70,6 +70,16 @@ void Chess2D::_bind_methods() {
 	}
 
 	{
+		const StringName set_target_offsets_method = "set_target_offsets";
+		ClassDB::bind_method(D_METHOD(set_target_offsets_method, "offsets"), &Chess2D::set_target_offsets);
+	}
+
+	{
+		const StringName clear_animation_offsets_method = "clear_animation_offsets";
+		ClassDB::bind_method(D_METHOD(clear_animation_offsets_method), &Chess2D::clear_animation_offsets);
+	}
+
+	{
 		const StringName field_to_square_method = "field_to_square";
 		ClassDB::bind_static_method(class_name, D_METHOD(field_to_square_method, "file", "rank", "flip"), &Chess2D::field_to_square, false);
 	}
@@ -302,7 +312,7 @@ void Chess2D::toggle_annotation(phase4::engine::common::Square from, phase4::eng
 }
 
 void Chess2D::clear_animation_offsets() {
-	square_animation_offsets.fill(Vector2(0, 0));
+	square_animation_offsets = square_target_offsets;
 	piece_animation_offsets.fill(Vector2(0, 0));
 
 	for (size_t i = 0; i < piece_trail_ends.size(); ++i) {
@@ -359,6 +369,20 @@ void Chess2D::slide_squares(const Vector2i &direction) {
 	}
 }
 
+void Chess2D::set_target_offsets(const PackedVector2Array &p_offsets) {
+	using namespace phase4::engine::common;
+
+	ERR_FAIL_COND_MSG(p_offsets.size() < 16, "Expected 16 offsets");
+
+	for (int i = 0; i < square_animation_offsets.size(); ++i) {
+		int remap = 63 - i;
+		int x = remap % 8;
+		int y = remap / 8;
+		int out = x / 2 + y / 2 * 4;
+		square_target_offsets[i] = p_offsets[out];
+	}
+}
+
 godot::String Chess2D::field_to_square(int file, int rank, bool flip = false) {
 	using namespace phase4::engine::common;
 
@@ -408,23 +432,23 @@ void Chess2D::_process(double delta) {
 			}
 		}
 	} else {
-		auto square_offset = square_animation_offsets.begin();
-		for (; square_offset != square_animation_offsets.end(); ++square_offset) {
-			if (*square_offset != Vector2(0, 0)) {
+		int square_offset = 0;
+		for (; square_offset < square_animation_offsets.size(); ++square_offset) {
+			if (square_animation_offsets[square_offset] != square_target_offsets[square_offset]) {
 				break;
 			}
 		}
 
-		if (square_offset != square_animation_offsets.end()) {
+		if (square_offset < square_animation_offsets.size()) {
 			draw_flags |= DrawFlags::BOARD;
 			queue_redraw();
 
 			do {
-				if (!square_offset->is_zero_approx()) {
-					*square_offset = square_offset->move_toward(Vector2(0, 0), delta * Math::clamp(square_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
+				if (square_animation_offsets[square_offset] != square_target_offsets[square_offset]) {
+					square_animation_offsets[square_offset] = square_animation_offsets[square_offset].move_toward(square_target_offsets[square_offset], delta * Math::clamp(square_animation_offsets[square_offset].length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 				}
 				++square_offset;
-			} while (square_offset != square_animation_offsets.end());
+			} while (square_offset < square_animation_offsets.size());
 		}
 	}
 
