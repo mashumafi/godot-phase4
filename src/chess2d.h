@@ -36,6 +36,13 @@ class Chess2D : public Node2D {
 	};
 	int64_t draw_flags = DrawFlags::ALL;
 
+public:
+	enum InputMode {
+		INPUT_MODE_NONE,
+		INPUT_MODE_STANDARD,
+		INPUT_MODE_SLIDE,
+	};
+
 private:
 	inline static const char *SIGNAL_PIECE_MOVED = "piece_moved";
 
@@ -45,6 +52,7 @@ private:
 
 	Ref<ChessTheme> theme = nullptr;
 	bool is_flipped = false;
+	InputMode input_mode = InputMode::INPUT_MODE_STANDARD;
 
 	std::optional<Vector2i> highlighted_square;
 	std::optional<Vector2i> selected_square;
@@ -106,6 +114,9 @@ public:
 	bool get_flipped() const;
 	void set_flipped(bool flipped);
 
+	InputMode get_input_mode() const;
+	void set_input_mode(InputMode mode);
+
 	void undo_last_move();
 	void seek_position(uint64_t index);
 
@@ -138,5 +149,7 @@ public:
 };
 
 } //namespace godot
+
+VARIANT_ENUM_CAST(godot::Chess2D::InputMode);
 
 #endif

@@ -41,6 +41,21 @@ void Chess2D::_bind_methods() {
 	}
 
 	{
+		BIND_ENUM_CONSTANT(INPUT_MODE_NONE);
+		BIND_ENUM_CONSTANT(INPUT_MODE_STANDARD);
+		BIND_ENUM_CONSTANT(INPUT_MODE_SLIDE);
+	}
+
+	{
+		const StringName get_input_mode_method = "get_input_mode";
+		const StringName set_input_mode_method = "set_input_mode";
+		const StringName input_mode_property = "input_mode";
+		ClassDB::bind_method(D_METHOD(get_input_mode_method), &Chess2D::get_input_mode);
+		ClassDB::bind_method(D_METHOD(set_input_mode_method, input_mode_property), &Chess2D::set_input_mode);
+		ClassDB::add_property(class_name, PropertyInfo(Variant::INT, input_mode_property), set_input_mode_method, get_input_mode_method);
+	}
+
+	{
 		const StringName get_theme_method = "get_theme";
 		const StringName set_theme_method = "set_theme";
 		const StringName theme_property = "theme";
@@ -415,93 +430,98 @@ void Chess2D::_process(double delta) {
 	}
 
 	// Process piece offsets
-	auto piece_offset = piece_animation_offsets.begin();
-	for (; piece_offset != piece_animation_offsets.end(); ++piece_offset) {
-		if (*piece_offset != Vector2(0, 0)) {
-			break;
-		}
-	}
-
-	if (piece_offset != piece_animation_offsets.end()) {
-		draw_flags |= DrawFlags::PIECES;
-		queue_redraw();
-
+	{
+		auto piece_offset = piece_animation_offsets.begin();
 		for (; piece_offset != piece_animation_offsets.end(); ++piece_offset) {
 			if (*piece_offset != Vector2(0, 0)) {
-				*piece_offset = piece_offset->move_toward(Vector2(0, 0), delta * Math::clamp(piece_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
-			}
-		}
-	} else {
-		int square_offset = 0;
-		for (; square_offset < square_animation_offsets.size(); ++square_offset) {
-			if (square_animation_offsets[square_offset] != square_target_offsets[square_offset]) {
 				break;
 			}
 		}
 
-		if (square_offset < square_animation_offsets.size()) {
-			draw_flags |= DrawFlags::BOARD;
+		if (piece_offset != piece_animation_offsets.end()) {
+			draw_flags |= DrawFlags::PIECES;
 			queue_redraw();
 
-			do {
-				if (square_animation_offsets[square_offset] != square_target_offsets[square_offset]) {
-					square_animation_offsets[square_offset] = square_animation_offsets[square_offset].move_toward(square_target_offsets[square_offset], delta * Math::clamp(square_animation_offsets[square_offset].length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
+			for (; piece_offset != piece_animation_offsets.end(); ++piece_offset) {
+				if (*piece_offset != Vector2(0, 0)) {
+					*piece_offset = piece_offset->move_toward(Vector2(0, 0), delta * Math::clamp(piece_offset->length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
 				}
-				++square_offset;
-			} while (square_offset < square_animation_offsets.size());
+			}
+		} else {
+			int square_offset = 0;
+			for (; square_offset < square_animation_offsets.size(); ++square_offset) {
+				if (square_animation_offsets[square_offset] != square_target_offsets[square_offset]) {
+					break;
+				}
+			}
+
+			if (square_offset < square_animation_offsets.size()) {
+				draw_flags |= DrawFlags::BOARD;
+				queue_redraw();
+
+				do {
+					if (square_animation_offsets[square_offset] != square_target_offsets[square_offset]) {
+						square_animation_offsets[square_offset] = square_animation_offsets[square_offset].move_toward(square_target_offsets[square_offset], delta * Math::clamp(square_animation_offsets[square_offset].length_squared() / 2, theme->get_square_size(), theme->get_square_size() * 12));
+					}
+					++square_offset;
+				} while (square_offset < square_animation_offsets.size());
+			}
 		}
 	}
 
 	// Update sliding trails
-	int32_t slide_index = 0;
-	for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
-		if ((position.current().walls() & square.asBitboard()) != 0) {
-			continue;
-		}
+	{
+		int32_t slide_index = 0;
+		for (Square square = Square::BEGIN; square != Square::INVALID; ++square) {
+			if ((position.current().walls() & square.asBitboard()) != 0) {
+				continue;
+			}
 
-		const FieldIndex field = square.asFieldIndex();
-		int field_mod = is_flipped ? 0 : 1;
-		if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
-			const Vector2 slide_trail_begin = get_square_position(square) + ((slide_trail_end[square] - get_square_position(square)).normalized() * theme->get_square_size());
+			const FieldIndex field = square.asFieldIndex();
+			int field_mod = is_flipped ? 0 : 1;
+			if (field.x % 2 == field_mod && field.y % 2 != field_mod) {
+				const Vector2 slide_trail_begin = get_square_position(square) + ((slide_trail_end[square] - get_square_position(square)).normalized() * theme->get_square_size());
 
-			if (slide_trail_begin.distance_squared_to(slide_trail_end[square]) > theme->get_square_size() * theme->get_square_size()) {
-				slide_trail_end[square] = slide_trail_end[square].lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
-				square_trail_multimesh->set_instance_transform_2d(slide_index++, theme->transform_trail(slide_trail_begin, slide_trail_end[square], 1));
+				if (slide_trail_begin.distance_squared_to(slide_trail_end[square]) > theme->get_square_size() * theme->get_square_size()) {
+					slide_trail_end[square] = slide_trail_end[square].lerp(slide_trail_begin, Math::min(delta * 4, 1.0));
+					square_trail_multimesh->set_instance_transform_2d(slide_index++, theme->transform_trail(slide_trail_begin, slide_trail_end[square], 1));
+				}
 			}
 		}
-	}
-	square_trail_multimesh->set_visible_instance_count(slide_index);
+		square_trail_multimesh->set_visible_instance_count(slide_index);
 
-	size_t piece_trail_index = 0;
-	for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
-		const Square square(piece_trail_index);
-		if ((position.current().occupancySummary() & square.asBitboard()) == 0) {
-			continue;
-		}
-		const Vector2 trail_begin = get_square_position(square) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
-		if (!piece_trail_ends[piece_trail_index].is_equal_approx(trail_begin)) {
-			break;
-		}
-	}
-
-	size_t piece_trail_instance_index = 0;
-	if (piece_trail_index < piece_trail_ends.size()) {
-		queue_redraw();
-
+		size_t piece_trail_index = 0;
 		for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
 			const Square square(piece_trail_index);
 			if ((position.current().occupancySummary() & square.asBitboard()) == 0) {
 				continue;
 			}
 			const Vector2 trail_begin = get_square_position(square) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
-			if (piece_trail_ends[piece_trail_index].distance_squared_to(trail_begin) >= 1) {
-				piece_trail_ends[piece_trail_index] = piece_trail_ends[piece_trail_index].lerp(trail_begin, Math::min(delta * 4, 1.0));
-				piece_trail_multimesh->set_instance_transform_2d(piece_trail_instance_index++, theme->transform_trail(trail_begin, piece_trail_ends[piece_trail_index], 1.0 / 3.0));
+			if (!piece_trail_ends[piece_trail_index].is_equal_approx(trail_begin)) {
+				break;
 			}
 		}
-	}
-	piece_trail_multimesh->set_visible_instance_count(piece_trail_instance_index);
 
+		size_t piece_trail_instance_index = 0;
+		if (piece_trail_index < piece_trail_ends.size()) {
+			queue_redraw();
+
+			for (; piece_trail_index < piece_trail_ends.size(); ++piece_trail_index) {
+				const Square square(piece_trail_index);
+				if ((position.current().occupancySummary() & square.asBitboard()) == 0) {
+					continue;
+				}
+				const Vector2 trail_begin = get_square_position(square) + Vector2(.5, .5) * theme->get_square_size() + piece_animation_offsets[piece_trail_index];
+				if (piece_trail_ends[piece_trail_index].distance_squared_to(trail_begin) >= 1) {
+					piece_trail_ends[piece_trail_index] = piece_trail_ends[piece_trail_index].lerp(trail_begin, Math::min(delta * 4, 1.0));
+					piece_trail_multimesh->set_instance_transform_2d(piece_trail_instance_index++, theme->transform_trail(trail_begin, piece_trail_ends[piece_trail_index], 1.0 / 3.0));
+				}
+			}
+		}
+		piece_trail_multimesh->set_visible_instance_count(piece_trail_instance_index);
+	}
+
+	// Update dragging piece
 	if (drag_piece) {
 		draw_flags |= DrawFlags::DRAG_PIECE;
 		queue_redraw();
@@ -758,6 +778,10 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 	using namespace phase4::engine::moves;
 	using namespace phase4::engine::moves;
 
+	if (input_mode != INPUT_MODE_STANDARD) {
+		return; // TODO: Support other input modes
+	}
+
 	ERR_FAIL_COND_MSG(theme.is_null(), "Chess Theme is not provided.");
 
 	const Ref<InputEventMouseMotion> &mouse_motion = event;
@@ -888,6 +912,18 @@ Ref<ChessTheme> Chess2D::get_theme() const {
 
 bool Chess2D::get_flipped() const {
 	return is_flipped;
+}
+
+Chess2D::InputMode Chess2D::get_input_mode() const {
+	return input_mode;
+}
+
+void Chess2D::set_input_mode(InputMode mode) {
+	if (mode != INPUT_MODE_STANDARD) {
+		drag_piece.reset();
+	}
+
+	input_mode = mode;
 }
 
 void Chess2D::set_flipped(bool flipped) {
