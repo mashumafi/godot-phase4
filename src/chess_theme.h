@@ -228,7 +228,7 @@ public:
 
 	void set_trail_material(const Ref<Material> &material);
 
-	Transform2D transform_trail(const Vector2& begin, const Vector2& end, real_t width);
+	Transform2D transform_trail(const Vector2 &begin, const Vector2 &end, real_t width);
 
 	const Ref<Mesh> &get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to);
 

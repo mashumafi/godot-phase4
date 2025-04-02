@@ -131,9 +131,9 @@ public:
 
 	void slide_squares(const Vector2i &direction);
 
-	void set_target_offsets(const PackedVector2Array& p_offsets);
+	void set_target_offsets(const PackedVector2Array &p_offsets);
 
-	static godot::String field_to_square(int file, int rank, bool flip) ;
+	static godot::String field_to_square(int file, int rank, bool flip);
 	static Vector2i square_to_field(const godot::String &square_name, bool flip);
 };
 
