@@ -80,6 +80,7 @@ private:
 	Ref<MultiMesh> piece_trail_multimesh;
 	Ref<MultiMesh> square_trail_multimesh;
 
+	std::array<Vector2, 64> square_target_offsets;
 	std::array<Vector2, 64> square_animation_offsets;
 	std::array<Vector2, 64> piece_animation_offsets;
 
@@ -129,6 +130,8 @@ public:
 	void break_square(const godot::String &square_name);
 
 	void slide_squares(const Vector2i &direction);
+
+	void set_target_offsets(const PackedVector2Array& p_offsets);
 
 	static godot::String field_to_square(int file, int rank, bool flip) ;
 	static Vector2i square_to_field(const godot::String &square_name, bool flip);
