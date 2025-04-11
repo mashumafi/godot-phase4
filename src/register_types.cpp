@@ -2,6 +2,7 @@
 
 #include "chess2d.h"
 #include "chess_theme.h"
+#include "slide_puzzle.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -17,6 +18,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 
 	ClassDB::register_class<ChessTheme>();
 	ClassDB::register_class<Chess2D>();
+	ClassDB::register_class<SlidePuzzle>();
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

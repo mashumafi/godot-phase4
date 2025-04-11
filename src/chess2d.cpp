@@ -246,7 +246,7 @@ void Chess2D::theme_changed() {
 	selected_canvas_item.instantiate();
 	selected_canvas_item.set_parent(get_canvas_item());
 	selected_canvas_item.set_draw_index(draw_index++);
-	invalid_hover_canvas_item.set_self_modulate(Color("YELLOW"));
+	selected_canvas_item.set_self_modulate(Color("YELLOW"));
 
 	annotations_canvas_item.instantiate();
 	annotations_canvas_item.set_parent(get_canvas_item());
@@ -723,10 +723,25 @@ void Chess2D::_draw() {
 		invalid_hover_canvas_item.clear();
 		if (!annotation_begin_square) {
 			if (highlighted_square) {
-				const Square square(FieldIndex(highlighted_square->x, 7 - highlighted_square->y));
-				const Square flippedSquare = is_flipped ? square.flipped() : square;
-				CanvasItemUtil &hover_canvas_item = position.validMoves(flippedSquare).is_empty() ? invalid_hover_canvas_item : valid_hover_canvas_item;
-				hover_canvas_item.add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
+				// Display the hovered square highlight mesh
+				const Square target_square(FieldIndex(highlighted_square->x, 7 - highlighted_square->y));
+				const Square flipped_target_square = is_flipped ? target_square.flipped() : target_square;
+				CanvasItemUtil *hover_canvas_item;
+				if (selected_square && selected_square != highlighted_square) {
+					// Show valid squares for selected piece
+					const Square start_square(FieldIndex(selected_square->x, 7 - selected_square->y));
+					const Square flipped_start_square = is_flipped ? start_square.flipped() : start_square;
+					hover_canvas_item = &invalid_hover_canvas_item;
+					FastVector<Move, 21> valid_moves = position.validMoves(flipped_start_square);
+					for (size_t i = 0; i < valid_moves.size(); ++i) {
+						if (valid_moves[i].from() == flipped_start_square && valid_moves[i].to() == flipped_target_square) {
+							hover_canvas_item = &valid_hover_canvas_item;
+						}
+					}
+				} else {
+					hover_canvas_item = position.validMoves(flipped_target_square).is_empty() ? &invalid_hover_canvas_item : &valid_hover_canvas_item;
+				}
+				hover_canvas_item->add_mesh(*theme->get_highlight_mesh().ptr(), godot::Transform2D().translated(start_position + highlighted_square.value() * theme->get_square_size()));
 			}
 		}
 
@@ -864,9 +879,10 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 		} else if (mouse_button->get_button_index() == MOUSE_BUTTON_RIGHT) {
 			if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
 				if (mouse_button->is_pressed()) {
+					highlighted_square.reset();
 					annotation_begin_square = mouse_square_transform;
 					annotation_end_square = mouse_square_transform;
-					draw_flags |= DrawFlags::ANNOTATIONS;
+					draw_flags |= DrawFlags::ANNOTATIONS | DrawFlags::HIGHLIGHT;
 					queue_redraw();
 				} else if (annotation_begin_square) {
 					if (annotation_end_square) {
@@ -877,7 +893,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 						annotation_end_square.reset();
 					}
 					annotation_begin_square.reset();
-					draw_flags |= DrawFlags::ANNOTATIONS;
+					draw_flags |= DrawFlags::ANNOTATIONS | DrawFlags::HIGHLIGHT;
 					queue_redraw();
 				}
 			} else if (annotation_begin_square) {

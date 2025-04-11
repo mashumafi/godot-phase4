@@ -1,8 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://uqyd6vtjqbj5"]
+[gd_scene load_steps=8 format=3 uid="uid://uqyd6vtjqbj5"]
 
 [ext_resource type="Script" uid="uid://dd6hvxcvrcs8i" path="res://game/chess_session.gd" id="1_obthr"]
 [ext_resource type="PackedScene" uid="uid://bnxwulu1cjt0r" path="res://game/chess_view.tscn" id="2_urwq1"]
+[ext_resource type="PackedScene" uid="uid://c3pgogo06dn41" path="res://game/slide_puzzle.tscn" id="3_3yoo6"]
 [ext_resource type="Texture2D" uid="uid://cn72qaw31tslh" path="res://Textures/UI/flip_icon.svg" id="4_60hl8"]
+[ext_resource type="Texture2D" uid="uid://ca44vmmucmqqq" path="res://Textures/UI/BlackKing.svg" id="4_ehoy0"]
 [ext_resource type="Texture2D" uid="uid://in2tu2qv5ivy" path="res://Textures/UI/undo_icon.svg" id="5_4i2a0"]
 [ext_resource type="Texture2D" uid="uid://c6t61ly4oiiw4" path="res://Textures/UI/resign_icon.svg" id="6_ei1uk"]
 
@@ -31,7 +33,11 @@ render_target_update_mode = 4
 
 [node name="ChessView" parent="SubViewportContainer/SubViewport" instance=ExtResource("2_urwq1")]
 
-[node name="WallSelection" parent="SubViewportContainer/SubViewport/ChessView/Game" index="1"]
+[node name="SlidePuzzle2D" parent="SubViewportContainer/SubViewport/ChessView/Game" index="1" instance=ExtResource("3_3yoo6")]
+texture = ExtResource("4_ehoy0")
+complexity = 3
+
+[node name="WallSelection" parent="SubViewportContainer/SubViewport/ChessView/Game" index="2"]
 process_mode = 4
 modulate = Color(1, 1, 1, 0)
 
