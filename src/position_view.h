@@ -321,7 +321,7 @@ public:
 			return offsets;
 		}
 
-		Detail& lastDetail = m_details.peek();
+		Detail &lastDetail = m_details.peek();
 		Position position = lastDetail.position;
 		const PositionMoves::SlideResult result = PositionMoves::slideWall(position, wallMove);
 		// TODO: compute hash

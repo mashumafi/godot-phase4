@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3pgogo06dn41"]
+
+[ext_resource type="Script" uid="uid://kuc7n0rsino5" path="res://game/slide_puzzle.gd" id="1_y4ukg"]
+
+[node name="SlidePuzzle2D" type="Node2D"]
+script = ExtResource("1_y4ukg")
+complexity = null
