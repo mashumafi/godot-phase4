@@ -691,7 +691,7 @@ void Chess2D::_draw() {
 			}
 			for (PieceType piece_type = PieceType::PAWN; piece_type != PieceType::INVALID; ++piece_type) {
 				MultiMesh *mesh = piece_meshes[piece_color.get_raw_value()][piece_type.get_raw_value()].ptr();
-				const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
+				const Ref<Texture> &texture = theme->get_piece_texture(static_cast<ChessTheme::PieceColor>(piece_color.get_raw_value()), static_cast<ChessTheme::PieceType>(piece_type.get_raw_value()));
 				ERR_CONTINUE_MSG(texture.is_null(), "Invalid texture");
 
 				Bitboard squares = position.current().colorPieceMask(piece_color, piece_type);
@@ -779,7 +779,7 @@ void Chess2D::_draw() {
 			const std::optional<std::tuple<PieceColor, PieceType>> &pieceTypeAndColor = position.current().getPiece(drag_square);
 			assert(pieceTypeAndColor); // This square should have a valid piece and color
 			const auto &[piece_color, piece_type] = *pieceTypeAndColor;
-			const Ref<Texture> &texture = theme->get_piece_texture(piece_color, piece_type);
+			const Ref<Texture> &texture = theme->get_piece_texture(static_cast<ChessTheme::PieceColor>(piece_color.get_raw_value()), static_cast<ChessTheme::PieceType>(piece_type.get_raw_value()));
 			assert(texture.is_valid()); // A texture should be found since everything is valid above
 			drag_piece_canvas_item.add_mesh(*drag_piece_mesh.ptr(), transform, Color(1, 1, 1, 1), *texture.ptr());
 		}

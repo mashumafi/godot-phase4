@@ -2,7 +2,8 @@
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/templates/hash_set.hpp>
-#include <godot_cpp/templates/rb_set.hpp>
+#include <godot_cpp/templates/local_vector.hpp>
+#include <godot_cpp/templates/sort_array.hpp>
 
 using namespace godot;
 
@@ -58,18 +59,45 @@ struct TileNode {
 	Vector2 move;
 	TileNode *prev;
 	TileNode *next;
+};
 
-	bool operator<(const TileNode &other) const {
-		int left = g + h;
-		int right = other.g + other.h;
-		if (left != right) {
-			return left < right;
-		}
-		ERR_FAIL_COND_V(state == other.state, -1);
-		return state < other.state;
+struct SortTiles {
+	_FORCE_INLINE_ bool operator()(const TileNode *A, const TileNode *B) const {
+		return A->g + A->h > B->g + B->h;
 	}
 };
 
+struct SortTilesGraph {
+	_FORCE_INLINE_ bool operator()(const TileNode *A, const TileNode *B) const {
+		return A->g < B->g;
+	}
+};
+
+template <typename T, typename Comparator>
+class PriorityQueue {
+public:
+	_FORCE_INLINE_ void insert(const T &value) {
+		open.push_back(value);
+		sorted.push_heap(0, open.size() - 1, 0, value, open.ptr());
+	}
+
+	_FORCE_INLINE_ T pop() {
+		T current = open[0];
+		sorted.pop_heap(0, open.size(), open.ptr());
+		open.remove_at(open.size() - 1);
+		return current;
+	}
+
+	_FORCE_INLINE_ bool is_empty() const {
+		return open.is_empty();
+	}
+
+private:
+	LocalVector<T> open;
+	SortArray<T, Comparator> sorted;
+};
+
+template <typename Comparator>
 class TileNodes {
 public:
 	TileNodes() :
@@ -84,7 +112,7 @@ public:
 		}
 	}
 
-	void alloc(TileState state, int empty_tile_index, int g, int h, const Vector2 &move, TileNode *prev) {
+	_FORCE_INLINE_ void alloc(TileState state, int empty_tile_index, int g, int h, const Vector2 &move, TileNode *prev) {
 		TileNode *node = memnew(TileNode);
 		node->state = state;
 		node->empty_tile_index = empty_tile_index;
@@ -93,31 +121,30 @@ public:
 		node->move = move;
 		node->prev = prev;
 
-		open.insert(node);
+		queue.insert(node);
 
 		node->next = nodes;
 		nodes = node;
 	}
 
-	TileNode *next() {
-		if (open.is_empty()) {
+	_FORCE_INLINE_ TileNode *next() {
+		if (queue.is_empty()) {
 			return nullptr;
 		}
 
-		TileNode *current = open.front()->get();
-		open.erase(open.front());
-		return current;
+		return queue.pop();
 	}
 
 private:
-	RBSet<TileNode *> open;
+	PriorityQueue<TileNode *, Comparator> queue;
 
 	TileNode *nodes;
 };
 
 TileState unpack(const PackedInt32Array &p_state) {
 	TileState state = 0;
-	for (int64_t i = 0; i < p_state.size(); ++i) {
+	const int size = p_state.size();
+	for (int64_t i = 0; i < size; ++i) {
 		state = set_nibble(state, i, p_state[i]);
 	}
 	return state;
@@ -137,7 +164,7 @@ public:
 			complexity(p_complexity), total_complexity(complexity * complexity), empty_tile(total_complexity - 1) {
 	}
 
-	int manhattan_distance(TileState p_state) const {
+	_FORCE_INLINE_ int manhattan_distance(TileState p_state) const {
 		int distance = 0;
 		for (size_t i = 0; i < total_complexity; ++i) {
 			int tile = get_nibble(p_state, i);
@@ -152,7 +179,7 @@ public:
 		return distance;
 	}
 
-	int linear_conflict(TileState p_state) const {
+	_FORCE_INLINE_ int linear_conflict(TileState p_state) const {
 		int conflict = 0;
 
 		// Check rows
@@ -204,11 +231,11 @@ public:
 		return conflict * 2;
 	}
 
-	int heuristic(TileState p_state) const {
+	_FORCE_INLINE_ int heuristic(TileState p_state) const {
 		return manhattan_distance(p_state) + linear_conflict(p_state);
 	}
 
-	int get_neighbors(TileState p_state, int empty_tile_index, Neighbor p_neighbors[4]) const {
+	_FORCE_INLINE_ int get_neighbors(TileState p_state, int empty_tile_index, Neighbor p_neighbors[4]) const {
 		int count = 0;
 
 		const int y = empty_tile_index / complexity;
@@ -246,6 +273,21 @@ protected:
 	int empty_tile;
 };
 
+PackedVector2Array get_moves(TileNode *current) {
+	PackedVector2Array moves;
+	int size = current->g;
+	moves.resize(size);
+	Vector2 *moves_ptrw = moves.ptrw();
+	while (current != nullptr) {
+		if (current->move != Vector2(0, 0)) {
+			moves_ptrw[--size] = current->move;
+		}
+		current = current->prev;
+	}
+	ERR_FAIL_COND_V(size != 0, {});
+	return moves;
+}
+
 class Solver : public SlideUtil {
 public:
 	Solver(int p_complexity, const PackedInt32Array &p_state) :
@@ -264,18 +306,7 @@ public:
 			visited.insert(current->state);
 
 			if (current->state == goal) {
-				PackedVector2Array moves;
-				int size = current->g;
-				moves.resize(size);
-				Vector2 *moves_ptrw = moves.ptrw();
-				while (current != nullptr) {
-					if (current->move != Vector2(0, 0)) {
-						moves_ptrw[--size] = current->move;
-					}
-					current = current->prev;
-				}
-				ERR_FAIL_COND_V(size != 0, {});
-				return moves;
+				return get_moves(current);
 			}
 
 			Neighbor neighbors[4];
@@ -293,23 +324,72 @@ public:
 	}
 
 private:
-	TileNodes nodes;
-	HashSet<uint64_t> visited;
-
 	TileState state;
 	TileState goal;
+
+	TileNodes<SortTiles> nodes;
+	HashSet<uint64_t> visited;
+};
+
+class Shuffler : public SlideUtil {
+public:
+	Shuffler(int p_complexity, Array &p_tiles, int p_goal, const Ref<RandomNumberGenerator> &p_rng) :
+			SlideUtil(p_complexity),
+			tiles(p_tiles),
+			goal(p_goal),
+			rng(p_rng),
+			state(create_goal(total_complexity)) { // Assume the array is already sorted
+		nodes.alloc(state, empty_tile, 0, 0, Vector2(), nullptr);
+	}
+
+	PackedVector2Array shuffle() {
+		for (TileNode *current = nodes.next(); current != nullptr; current = nodes.next()) {
+			if (visited.has(current->state)) {
+				continue;
+			}
+
+			visited.insert(current->state);
+
+			if (current->g == goal) {
+				return get_moves(current);
+			}
+
+			Neighbor neighbors[4];
+			int n = get_neighbors(current->state, current->empty_tile_index, neighbors);
+
+			for (int i = 0; i < n; ++i) {
+				int index = rng->randi_range(i, n - 1);
+				const Neighbor &neighbor = neighbors[index];
+				if (!visited.has(neighbor.state)) {
+					nodes.alloc(neighbor.state, neighbor.empty_tile_index, current->g + 1, 0, neighbor.move, current);
+				}
+				neighbors[index] = neighbors[i];
+			}
+		}
+
+		return {};
+	}
+
+private:
+	Array tiles;
+	int goal;
+	Ref<RandomNumberGenerator> rng;
+
+	TileState state;
+	TileNodes<SortTilesGraph> nodes;
+	HashSet<uint64_t> visited;
 };
 
 } //namespace
 
 void SlidePuzzle::_bind_methods() {
 	StringName class_name = "SlidePuzzle";
-	ClassDB::bind_static_method(class_name, D_METHOD("shuffle", "complexity", "squares", "rng"), &SlidePuzzle::shuffle);
+	ClassDB::bind_static_method(class_name, D_METHOD("shuffle", "complexity", "squares", "moves", "rng"), &SlidePuzzle::shuffle);
 	ClassDB::bind_static_method(class_name, D_METHOD("is_solvable", "complexity", "squares"), &SlidePuzzle::is_solvable);
 	ClassDB::bind_static_method(class_name, D_METHOD("solve", "complexity", "squares"), &SlidePuzzle::solve);
 }
 
-PackedVector2Array SlidePuzzle::shuffle(int p_complexity, Array p_state, const Ref<RandomNumberGenerator> &p_rng) {
+PackedVector2Array SlidePuzzle::shuffle(int p_complexity, Array p_state, int p_moves, const Ref<RandomNumberGenerator> &p_rng) {
 	int total_complexity = p_complexity * p_complexity;
 	ERR_FAIL_COND_V(total_complexity != p_state.size(), {});
 
@@ -317,51 +397,19 @@ PackedVector2Array SlidePuzzle::shuffle(int p_complexity, Array p_state, const R
 	int empty_tile_index = empty_tile_value;
 	const Variant empty_tile = p_state[empty_tile_index];
 
-	int tiles[15];
-	for (int i = 0; i < empty_tile_value; ++i) {
-		tiles[i] = i >= empty_tile_index ? i + 1 : i;
+	Shuffler shuffler(p_complexity, p_state, p_moves, p_rng);
+	PackedVector2Array moves = shuffler.shuffle();
+	Vector2 *moves_ptrw = moves.ptrw();
+	const int size = moves.size();
+	for (int i = 0; i < size; ++i) {
+		int offset = moves_ptrw[i].x + moves_ptrw[i].y * p_complexity;
+		int target = empty_tile_index + offset;
+		p_state[empty_tile_index] = p_state[target];
+		empty_tile_index = target;
+		moves_ptrw[i] = -moves_ptrw[i];
 	}
-
-	for (int i = empty_tile_value - 1; i >= 1; i--) {
-		const int j = p_rng->randi_range(0, i + 1);
-		const int tmp = tiles[j];
-		tiles[j] = tiles[i];
-		tiles[i] = tmp;
-	}
-
-	PackedVector2Array moves;
-	for (int i = 0; i < empty_tile_value; ++i) {
-		int goal = tiles[i];
-		int gx = goal % p_complexity;
-		int gy = goal / p_complexity;
-		while (empty_tile_index != goal) {
-			int target = empty_tile_index;
-			int tx = target % p_complexity;
-			int ty = target / p_complexity;
-
-			if (gx < tx) {
-				moves.push_back(Vector2(1, 0));
-				target -= 1;
-			} else if (gy < ty) {
-				moves.push_back(Vector2(0, 1));
-				target -= p_complexity;
-			} else if (gx > tx) {
-				moves.push_back(Vector2(-1, 0));
-				target += 1;
-			} else if (gy > ty) {
-				moves.push_back(Vector2(0, -1));
-				target += p_complexity;
-			}
-			ERR_FAIL_COND_V(target == empty_tile_index, moves);
-
-			p_state[empty_tile_index] = p_state[target];
-			empty_tile_index = target;
-		}
-		p_state[empty_tile_index] = empty_tile;
-	}
-
+	p_state[empty_tile_index] = empty_tile;
 	moves.reverse();
-	// TODO: Simplify the moves, remove undo
 	return moves;
 }
 

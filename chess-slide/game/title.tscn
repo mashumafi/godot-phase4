@@ -1,11 +1,8 @@
 [gd_scene load_steps=3 format=3 uid="uid://dqdfmt3i1tsn4"]
 
-[ext_resource type="PackedScene" uid="uid://c3pgogo06dn41" path="res://game/slide_puzzle.tscn" id="1_gkyaf"]
-[ext_resource type="Texture2D" uid="uid://divasf4uo30im" path="res://Textures/UI/BlackBishop.svg" id="2_pwv2q"]
+[ext_resource type="Script" uid="uid://cbn3ic8etbc2" path="res://game/title.gd" id="1_t0532"]
+[ext_resource type="ChessTheme" uid="uid://ckvvdwkbps6g1" path="res://game/default_chess_theme.tres" id="2_gkyaf"]
 
 [node name="Title" type="Node2D"]
-
-[node name="SlidePuzzle" parent="." instance=ExtResource("1_gkyaf")]
-position = Vector2(300, 222)
-texture = ExtResource("2_pwv2q")
-complexity = 4
+script = ExtResource("1_t0532")
+chess_theme = ExtResource("2_gkyaf")

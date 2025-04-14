@@ -287,6 +287,22 @@ void ChessTheme::_bind_methods() {
 		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, black_king_texture_property, PROPERTY_HINT_NONE), set_black_king_texture_method, get_black_king_texture_method);
 	}
 
+	{ // Piece Texture
+		const StringName get_piece_texture_method = "get_piece_texture";
+		ClassDB::bind_method(D_METHOD(get_piece_texture_method, "color", "type"), &ChessTheme::get_piece_texture);
+	}
+
+	BIND_ENUM_CONSTANT(PIECE_COLOR_WHITE);
+	BIND_ENUM_CONSTANT(PIECE_COLOR_BLACK);
+	BIND_ENUM_CONSTANT(PIECE_COLOR_MAX);
+	BIND_ENUM_CONSTANT(PIECE_TYPE_PAWN);
+	BIND_ENUM_CONSTANT(PIECE_TYPE_KNIGHT);
+	BIND_ENUM_CONSTANT(PIECE_TYPE_BISHOP);
+	BIND_ENUM_CONSTANT(PIECE_TYPE_ROOK);
+	BIND_ENUM_CONSTANT(PIECE_TYPE_QUEEN);
+	BIND_ENUM_CONSTANT(PIECE_TYPE_KING);
+	BIND_ENUM_CONSTANT(PIECE_TYPE_MAX);
+
 	{ // White Square Color
 		const StringName get_white_square_color_method = "get_white_square_color";
 		const StringName set_white_square_color_method = "set_white_square_color";
@@ -359,7 +375,7 @@ void ChessTheme::_bind_methods() {
 		ClassDB::add_property(class_name, PropertyInfo(Variant::OBJECT, flourish_property, PROPERTY_HINT_NONE), set_flourish_method, get_flourish_method);
 	}
 
-	{ // Trail Texture
+	{ // Trail Texture2D
 		const StringName get_trail_texture_method = "get_trail_texture";
 		const StringName set_trail_texture_method = "set_trail_texture";
 		const StringName trail_texture_property = "trail_texture";
@@ -430,13 +446,13 @@ void ChessTheme::set_annotation_color(Color color) {
 	emit_changed();
 }
 
-void ChessTheme::set_flourish(const Ref<Texture> &texture) {
+void ChessTheme::set_flourish(const Ref<Texture2D> &texture) {
 	flourish = texture;
 	flourish_mesh = create_centered_square_polygon(square_size * 2);
 	emit_changed();
 }
 
-void ChessTheme::set_trail_texture(const Ref<Texture> &texture) {
+void ChessTheme::set_trail_texture(const Ref<Texture2D> &texture) {
 	trail_texture = texture;
 	emit_changed();
 }

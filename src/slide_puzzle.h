@@ -13,7 +13,7 @@ protected:
 	static void _bind_methods();
 
 public:
-	static PackedVector2Array shuffle(int p_complexity, Array p_squares, const Ref<RandomNumberGenerator>& p_rng);
+	static PackedVector2Array shuffle(int p_complexity, Array p_squares, int p_moves, const Ref<RandomNumberGenerator>& p_rng);
 	static bool is_solvable(int p_complexity, const PackedInt32Array &p_squares);
 	static PackedVector2Array solve(int p_complexity, const PackedInt32Array &p_squares);
 
