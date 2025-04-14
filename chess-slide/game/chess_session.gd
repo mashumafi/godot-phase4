@@ -6,7 +6,23 @@ extends Control
 
 var _move_button_group := ButtonGroup.new()
 
+var ZERO_PATTERN := PackedVector2Array([
+	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
+	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
+	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
+	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
+])
+
 @onready var square_size := chess_board.theme.square_size
+
+@onready var off_screen_factor := 16
+
+@onready var HORIZONTAL_CRISS_CROSS_PATTERN := PackedVector2Array([
+	Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0),
+	Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0),
+	Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0),
+	Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0),
+])
 
 class Squares:
 	extends Node2D
@@ -79,20 +95,23 @@ func _ready() -> void:
 	_piece_moved("*", "*", 0)
 	_show_wall_selection()
 
+	chess_board.set_target_offsets(HORIZONTAL_CRISS_CROSS_PATTERN)
+	chess_board.clear_animation_offsets();
+	chess_board.set_target_offsets(ZERO_PATTERN)
+
 
 func _show_wall_selection() -> void:
 	# TODO: Check that black is a local player
 	var is_black_local_human := true
+	chess_board.input_mode = Chess2D.INPUT_MODE_NONE
 	if is_black_local_human and "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" == chess_board.fen:
 		wall_selection.modulate = Color.WHITE
 		wall_selection.process_mode = Node.PROCESS_MODE_INHERIT
 		chess_board.modulate = Color.DARK_GRAY
-		chess_board.process_mode = Node.PROCESS_MODE_DISABLED
 	else:
 		wall_selection.modulate = Color.TRANSPARENT
 		wall_selection.process_mode = Node.PROCESS_MODE_DISABLED
 		chess_board.modulate = Color.WHITE
-		chess_board.process_mode = Node.PROCESS_MODE_INHERIT
 
 
 func _flip_board() -> void:
@@ -143,7 +162,7 @@ func _break_square(square: String) -> void:
 	chess_board.break_square(Chess2D.field_to_square(0, field.y))
 	var direction := Vector2i(-field.x / 2 * 2 if chess_board.is_flipped else -field.x, 0)
 	chess_board.slide_squares(direction)
-	chess_board.process_mode = Node.PROCESS_MODE_INHERIT
+	chess_board.input_mode = Chess2D.INPUT_MODE_STANDARD
 
 	var squares := Squares.new()
 	squares.chess_theme = chess_board.theme

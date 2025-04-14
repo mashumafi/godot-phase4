@@ -42,13 +42,13 @@ public:
 		}
 	}
 
-	inline void set_instance_color(int32_t instance, const godot::Color& color) {
+	inline void set_instance_color(int32_t instance, const godot::Color &color) {
 		for (godot::Ref<godot::MultiMesh> &mesh : meshes) {
 			mesh->set_instance_color(instance, color);
 		}
 	}
 
-	inline void set_instance_transform_2d(int32_t instance, const godot::Transform2D& transform) {
+	inline void set_instance_transform_2d(int32_t instance, const godot::Transform2D &transform) {
 		for (godot::Ref<godot::MultiMesh> &mesh : meshes) {
 			mesh->set_instance_transform_2d(instance, transform);
 		}

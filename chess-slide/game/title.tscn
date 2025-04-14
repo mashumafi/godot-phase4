@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://dqdfmt3i1tsn4"]
+
+[ext_resource type="Script" uid="uid://cbn3ic8etbc2" path="res://game/title.gd" id="1_t0532"]
+[ext_resource type="ChessTheme" uid="uid://ckvvdwkbps6g1" path="res://game/default_chess_theme.tres" id="2_gkyaf"]
+
+[node name="Title" type="Node2D"]
+script = ExtResource("1_t0532")
+chess_theme = ExtResource("2_gkyaf")
