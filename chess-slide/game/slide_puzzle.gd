@@ -123,7 +123,7 @@ func _process(delta: float) -> void:
 	squares[empty_square] = tmp_square
 	tween.tween_method(func(target: Vector2):
 		RenderingServer.canvas_item_set_transform(tmp_square.canvas_item_id, Transform2D.IDENTITY.translated(target))
-	, src_top_left, dst_top_left, .5) \
+	, src_top_left, dst_top_left, .7) \
 		.set_trans(Tween.TRANS_CUBIC) \
 		.set_ease(Tween.EASE_OUT) \
 		.finished.connect(set_process.bind(true))

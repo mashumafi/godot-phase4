@@ -26,16 +26,8 @@ jobs:
             { platform: ios, arch: arm64, os: macos-latest },
             { platform: web, arch: wasm32, os: ubuntu-22.04 }
           ]
-        target-type: [template_debug]
-        float-precision: [single, double]
-        include: # Also build a release version for these specific targets. Remove if you add template_release above.
-          - target: { platform: linux, arch: x86_64, os: ubuntu-22.04 }
-            target-type: template_release
-            float-precision: single
-
-          - target: { platform: linux, arch: x86_64, os: ubuntu-22.04 }
-            target-type: template_release
-            float-precision: double
+        target-type: [template_release]
+        float-precision: [single]
 
     runs-on: ${{ matrix.target.os }}
     steps:
@@ -47,10 +39,12 @@ jobs:
 
       # Lint
       - name: Setup clang-format
+        if: ${{ matrix.target.platform == 'linux' }}
         shell: bash
         run: |
           python -m pip install clang-format
       - name: Run clang-format
+        if: ${{ matrix.target.platform == 'linux' }}
         shell: bash
         run: |
           clang-format src/** --dry-run --Werror
