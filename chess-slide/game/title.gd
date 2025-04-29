@@ -63,7 +63,7 @@ class PuzzlePool:
 
 	var black_puzzle_cache : Array[PuzzleWrapper] = []
 	var white_puzzle_cache : Array[PuzzleWrapper] = []
-		
+
 	func _notification(what: int) -> void:
 		match what:
 			NOTIFICATION_PREDELETE:
@@ -169,55 +169,64 @@ func _ready() -> void:
 		-140, -180, -220, # LEFT (6, 7, 8)
 		-230, -270, -310, # DOWN (9, 10, 11)
 	]
-	var ROTATION := deg_to_rad(SUPPORTED_ROTATIONS[5])
+	var ROTATION := deg_to_rad(SUPPORTED_ROTATIONS[4])
+	var spawner_size := 225.0 * SCALE + PADDING * 2
+	var cross_pattern := false
+
 	var slow_mag := 250.0
 	var fast_mag := 480.0
 
 	var direction := Vector2.RIGHT.rotated(ROTATION)
 
-	for i in range(5):
+	var prec := absf(direction.x) < absf(direction.y)
+	var factor := direction.y if prec else direction.x
+
+	var is_vertical := absf(direction.x) < absf(direction.y)
+	var screen_length := 1080 if is_vertical else 1920
+
+	# Compute number of spawners needed
+	var spawners_needed := ceili(screen_length / spawner_size)
+	if cross_pattern:
+		spawners_needed *= 2
+
+	# Only ONE random shift for the whole line
+	var random_offset_range := spawner_size * 0.5 # Allow up to half spawner shift
+	var group_offset := randf_range(-random_offset_range, random_offset_range)
+
+	for i: int in range(spawners_needed):
 		var spawner := PuzzleSpawner.new(chess_theme, _puzzles)
 
-		var prec := absf(direction.x) < absf(direction.y)
-		var factor := direction.y if prec else direction.x
+		var spawn_from_positive_side := (i % 2 == 0) if cross_pattern else (factor > 0)
+		var magnitude := (fast_mag if i % 2 == 0 else slow_mag)
+		magnitude *= 1 if spawn_from_positive_side else -1
 
-		var magnitude := factor * (fast_mag if i % 2 == 0 else slow_mag)
-		var theta := ROTATION + (0.0 if magnitude > 0 else PI)
-
-		if prec:
+		if is_vertical:
 			spawner.magnitude.y = magnitude
 
-			var width := (225 * SCALE + PADDING * 2) / absf(sin(theta))
-			var tan_theta := tan(theta)
-			if magnitude > 0:
-				# DOWN
-				spawner.position.x = minf(-1080 / tan_theta + PADDING * 2, PADDING * 2) + (225.0 * SCALE / 2.0)
-				spawner.position.x += width * i
+			var step_x := spawner_size / absf(cos(ROTATION))
+			var spawner_index := i / 2 if cross_pattern else i
+			spawner.position.x = (PADDING * 2) + (step_x * spawner_index) + (225.0 * SCALE / 2.0)
+			spawner.position.x += group_offset
+
+			if spawn_from_positive_side:
 				spawner.position.y = 0
-				spawner.rotation = -PI / 2 + theta
+				spawner.rotation = ROTATION - PI/2
 			else:
-				# UP
-				spawner.position.x = minf(1080 / tan_theta + PADDING * 2, PADDING * 2) + (225.0 * SCALE / 2.0)
-				spawner.position.x += width * i
 				spawner.position.y = 1080
-				spawner.rotation = PI / 2 + theta
+				spawner.rotation = ROTATION + PI/2
 		else:
 			spawner.magnitude.x = magnitude
 
-			var height := (225 * SCALE + PADDING * 2) / absf(cos(theta))
-			if magnitude > 0:
-				# RIGHT
-				var tan_theta = tan(theta + PI / 2)
-				spawner.position.y = minf(1920 / tan_theta + PADDING * 2, PADDING * 2) - (225.0 * SCALE / 2.0)
-				spawner.position.y += height * i
+			var step_y := spawner_size / absf(sin(ROTATION))
+			var spawner_index := i / 2 if cross_pattern else i
+			spawner.position.y = (PADDING * 2) + (step_y * spawner_index) + (225.0 * SCALE / 2.0)
+			spawner.position.y += group_offset
+
+			if spawn_from_positive_side:
 				spawner.position.x = 0
-				spawner.rotation = theta
+				spawner.rotation = ROTATION
 			else:
-				# LEFT
-				var tan_theta = tan(PI / 2 + theta)
-				spawner.position.y = minf(-1920 / tan_theta + PADDING * 2, PADDING * 2) - (225.0 * SCALE / 2.0)
-				spawner.position.y += height * i
 				spawner.position.x = 1920
-				spawner.rotation = PI + theta
+				spawner.rotation = ROTATION + PI
 
 		add_child(spawner)
