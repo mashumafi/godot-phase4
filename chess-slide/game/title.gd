@@ -169,64 +169,68 @@ func _ready() -> void:
 		-140, -180, -220, # LEFT (6, 7, 8)
 		-230, -270, -310, # DOWN (9, 10, 11)
 	]
-	var ROTATION := deg_to_rad(SUPPORTED_ROTATIONS[4])
-	var spawner_size := 225.0 * SCALE + PADDING * 2
-	var cross_pattern := false
-
-	var slow_mag := 250.0
-	var fast_mag := 480.0
-
+	var ROTATION := deg_to_rad(SUPPORTED_ROTATIONS[1])
 	var direction := Vector2.RIGHT.rotated(ROTATION)
 
 	var prec := absf(direction.x) < absf(direction.y)
 	var factor := direction.y if prec else direction.x
+	var slow_mag := 250.0
+	var fast_mag := 480.0
+
+	var spawner_size := 225.0 * SCALE + PADDING * 2
+	var cross_pattern := true
+	var screen_width := 1080.0
+	var screen_height := 1920.0
 
 	var is_vertical := absf(direction.x) < absf(direction.y)
-	var screen_length := 1080 if is_vertical else 1920
+	var screen_size := screen_width if is_vertical else screen_height
 
-	# Compute number of spawners needed
-	var spawners_needed := ceili(screen_length / spawner_size)
+	# Projection size to determine spacing
+	var projection_factor := absf(sin(ROTATION)) if is_vertical else absf(cos(ROTATION))
+	var projected_size := spawner_size / projection_factor
+
+	# Count and offset
+	var spawner_count := ceili(screen_size / projected_size) + 2
 	if cross_pattern:
-		spawners_needed *= 2
+		spawner_count *= 2
 
-	# Only ONE random shift for the whole line
-	var random_offset_range := spawner_size * 0.5 # Allow up to half spawner shift
-	var group_offset := randf_range(-random_offset_range, random_offset_range)
+	var group_offset := randf_range(-projected_size * 0.5, projected_size * 0.5)
 
-	for i: int in range(spawners_needed):
+	for i: int in range(spawner_count):
 		var spawner := PuzzleSpawner.new(chess_theme, _puzzles)
 
-		var spawn_from_positive_side := (i % 2 == 0) if cross_pattern else (factor > 0)
+		var spawn_from_positive_side := (i % 2 == 0) if cross_pattern else (direction.x + direction.y > 0)
 		var magnitude := (fast_mag if i % 2 == 0 else slow_mag)
 		magnitude *= 1 if spawn_from_positive_side else -1
+		var index := i / 2 if cross_pattern else i
 
 		if is_vertical:
 			spawner.magnitude.y = magnitude
-
-			var step_x := spawner_size / absf(cos(ROTATION))
-			var spawner_index := i / 2 if cross_pattern else i
-			spawner.position.x = (PADDING * 2) + (step_x * spawner_index) + (225.0 * SCALE / 2.0)
-			spawner.position.x += group_offset
+			var tan_theta := tan(ROTATION)
 
 			if spawn_from_positive_side:
+				spawner.position.x = minf(-screen_width / tan_theta + PADDING * 2, PADDING * 2) + (spawner_size / 2.0)
+				spawner.position.x += projected_size * index + group_offset
 				spawner.position.y = 0
-				spawner.rotation = ROTATION - PI/2
+				spawner.rotation = -PI / 2 + ROTATION
 			else:
-				spawner.position.y = 1080
-				spawner.rotation = ROTATION + PI/2
+				spawner.position.x = minf(screen_width / tan_theta + PADDING * 2, PADDING * 2) + (spawner_size / 2.0)
+				spawner.position.x += projected_size * index + group_offset
+				spawner.position.y = screen_height
+				spawner.rotation = PI / 2 + ROTATION
+
 		else:
 			spawner.magnitude.x = magnitude
-
-			var step_y := spawner_size / absf(sin(ROTATION))
-			var spawner_index := i / 2 if cross_pattern else i
-			spawner.position.y = (PADDING * 2) + (step_y * spawner_index) + (225.0 * SCALE / 2.0)
-			spawner.position.y += group_offset
-
+			var tan_theta := tan(PI / 2 - ROTATION)  # adjusted for left/right launch
 			if spawn_from_positive_side:
+				spawner.position.y = minf(screen_height / tan_theta + PADDING * 2, PADDING * 2) - (spawner_size / 2.0)
+				spawner.position.y += projected_size * index + group_offset
 				spawner.position.x = 0
 				spawner.rotation = ROTATION
 			else:
-				spawner.position.x = 1920
-				spawner.rotation = ROTATION + PI
+				spawner.position.y = minf(-screen_height / tan_theta + PADDING * 2, PADDING * 2) - (spawner_size / 2.0)
+				spawner.position.y += projected_size * index + group_offset
+				spawner.position.x = screen_width
+				spawner.rotation = PI + ROTATION
 
 		add_child(spawner)
