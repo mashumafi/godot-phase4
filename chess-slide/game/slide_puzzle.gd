@@ -79,12 +79,14 @@ func reset() -> void:
 
 func solve() -> void:
 	solution = SlidePuzzle.solve(complexity, PackedInt32Array(squares.map(func (square: Square) -> int: return square.index)))
+	set_process(true)
 
 
 func shuffle(moves: int) -> void:
 	reset()
 	var rng := RandomNumberGenerator.new()
 	solution = SlidePuzzle.shuffle(complexity, squares, moves, rng)
+	set_process(true)
 
 	var size := get_size()
 	for i in squares.size():
@@ -123,7 +125,7 @@ func _process(delta: float) -> void:
 	squares[empty_square] = tmp_square
 	tween.tween_method(func(target: Vector2):
 		RenderingServer.canvas_item_set_transform(tmp_square.canvas_item_id, Transform2D.IDENTITY.translated(target))
-	, src_top_left, dst_top_left, .7) \
+	, src_top_left, dst_top_left, randf_range(.4, .8)) \
 		.set_trans(Tween.TRANS_CUBIC) \
 		.set_ease(Tween.EASE_OUT) \
 		.finished.connect(set_process.bind(true))
