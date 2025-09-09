@@ -62,20 +62,20 @@ class Squares:
 			white_square_color,
 			black_square_color,
 		])
-		
+
 		var top_left := Transform2D.IDENTITY.translated(Vector2(-half_square, -half_square))
 		var top_right := Transform2D.IDENTITY.translated(Vector2(half_square, -half_square))
 		var bottom_left := Transform2D.IDENTITY.translated(Vector2(-half_square, half_square))
 		var bottom_right := Transform2D.IDENTITY.translated(Vector2(half_square, half_square))
 		multimesh.transform_2d_array = PackedVector2Array([
-			top_left.x, top_left.y, top_left.origin, 
-			top_right.x, top_right.y, top_right.origin, 
-			bottom_left.x, bottom_left.y, bottom_left.origin, 
-			bottom_right.x, bottom_right.y, bottom_right.origin, 
+			top_left.x, top_left.y, top_left.origin,
+			top_right.x, top_right.y, top_right.origin,
+			bottom_left.x, bottom_left.y, bottom_left.origin,
+			bottom_right.x, bottom_right.y, bottom_right.origin,
 		])
 		multimesh_instance.multimesh = multimesh
 		add_child(multimesh_instance)
-		
+
 		var vis_notifier := VisibleOnScreenNotifier2D.new()
 		var square_vec := Vector2(square_size, square_size)
 		vis_notifier.rect = Rect2(-square_vec, square_vec * 2)
@@ -101,17 +101,17 @@ func _ready() -> void:
 
 
 func _show_wall_selection() -> void:
-	# TODO: Check that black is a local player
-	var is_black_local_human := true
-	chess_board.input_mode = Chess2D.INPUT_MODE_NONE
-	if is_black_local_human and "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" == chess_board.fen:
-		wall_selection.modulate = Color.WHITE
-		wall_selection.process_mode = Node.PROCESS_MODE_INHERIT
-		chess_board.modulate = Color.DARK_GRAY
-	else:
-		wall_selection.modulate = Color.TRANSPARENT
-		wall_selection.process_mode = Node.PROCESS_MODE_DISABLED
-		chess_board.modulate = Color.WHITE
+	var is_black_local_human := true # TODO: Check that black is a local player
+	if "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" == chess_board.fen:
+		chess_board.input_mode = Chess2D.INPUT_MODE_NONE
+		if is_black_local_human:
+			wall_selection.modulate = Color.WHITE
+			wall_selection.process_mode = Node.PROCESS_MODE_INHERIT
+			chess_board.modulate = Color.DARK_GRAY
+		else:
+			wall_selection.modulate = Color.TRANSPARENT
+			wall_selection.process_mode = Node.PROCESS_MODE_DISABLED
+			chess_board.modulate = Color.WHITE
 
 
 func _flip_board() -> void:

@@ -182,7 +182,7 @@ func _ready() -> void:
 	]
 	var ROTATION := deg_to_rad(SUPPORTED_ROTATIONS[11])
 	var direction := Vector2.RIGHT.rotated(ROTATION)
-	
+
 	var slow_mag := 125.0
 	var fast_mag := 260.0
 	var cross_pattern := true
