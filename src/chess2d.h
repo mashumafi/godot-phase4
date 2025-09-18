@@ -144,6 +144,8 @@ public:
 
 	void set_target_offsets(const PackedVector2Array &p_offsets);
 
+	void make_move(const godot::String &p_algebraic_notation);
+
 	static godot::String field_to_square(int file, int rank, bool flip);
 	static Vector2i square_to_field(const godot::String &square_name, bool flip);
 };

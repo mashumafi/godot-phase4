@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://c88oemcjqp4y4"]
+
+[ext_resource type="Texture2D" uid="uid://nnnsuo17gtdb" path="res://Textures/Flourish.svg" id="1_jr6i3"]
+
+[resource]
+atlas = ExtResource("1_jr6i3")
+region = Rect2(16, 112, 128, 224)

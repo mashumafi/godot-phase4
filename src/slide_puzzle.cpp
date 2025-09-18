@@ -150,10 +150,46 @@ TileState unpack(const PackedInt32Array &p_state) {
 	return state;
 }
 
+bool is_valid_goal(Array &p_tiles) {
+	for (int i = 0; i < p_tiles.size(); ++i) {
+		if (p_tiles[i].get_type() != Variant::INT)
+			return false;
+	}
+	return true;
+}
+
+int find_empty_tile(Array &p_tiles) {
+	const int empty_tile_value = p_tiles.size() - 1;
+
+	if (!is_valid_goal(p_tiles)) {
+		return empty_tile_value;
+	}
+
+	for (int64_t i = 0; i < p_tiles.size(); ++i) {
+		if ((int)p_tiles[i] == empty_tile_value) {
+			return i;
+		}
+	}
+
+	ERR_FAIL_V_MSG(empty_tile_value, "Using last tile as empty tile.");
+}
+
 TileState create_goal(int p_size) {
 	TileState goal = 0;
 	for (int i = 0; i < p_size; ++i) {
 		goal = set_nibble(goal, i, i);
+	}
+	return goal;
+}
+
+TileState create_goal(Array &p_tiles) {
+	if (!is_valid_goal(p_tiles)) {
+		return create_goal(p_tiles.size());
+	}
+
+	TileState goal = 0;
+	for (int i = 0; i < p_tiles.size(); ++i) {
+		goal = set_nibble(goal, i, p_tiles[i]);
 	}
 	return goal;
 }
@@ -333,12 +369,13 @@ private:
 
 class Shuffler : public SlideUtil {
 public:
-	Shuffler(int p_complexity, Array &p_tiles, int p_goal, const Ref<RandomNumberGenerator> &p_rng) :
+	Shuffler(int p_complexity, Array &p_tiles, int p_moves, const Ref<RandomNumberGenerator> &p_rng) :
 			SlideUtil(p_complexity),
 			tiles(p_tiles),
-			goal(p_goal),
+			moves(p_moves),
 			rng(p_rng),
-			state(create_goal(total_complexity)) { // Assume the array is already sorted
+			state(create_goal(p_tiles)) {
+		empty_tile = find_empty_tile(tiles);
 		nodes.alloc(state, empty_tile, 0, 0, Vector2(), nullptr);
 	}
 
@@ -350,7 +387,7 @@ public:
 
 			visited.insert(current->state);
 
-			if (current->g == goal) {
+			if (current->g == moves) {
 				return get_moves(current);
 			}
 
@@ -372,7 +409,7 @@ public:
 
 private:
 	Array tiles;
-	int goal;
+	int moves;
 	Ref<RandomNumberGenerator> rng;
 
 	TileState state;
@@ -389,32 +426,33 @@ void SlidePuzzle::_bind_methods() {
 	ClassDB::bind_static_method(class_name, D_METHOD("solve", "complexity", "squares"), &SlidePuzzle::solve);
 }
 
-PackedVector2Array SlidePuzzle::shuffle(int p_complexity, Array p_state, int p_moves, const Ref<RandomNumberGenerator> &p_rng) {
+PackedVector2Array SlidePuzzle::shuffle(int p_complexity, Array p_squares, int p_moves, const Ref<RandomNumberGenerator> &p_rng) {
+	ERR_FAIL_COND_V(p_rng.is_null(), {});
+
 	int total_complexity = p_complexity * p_complexity;
-	ERR_FAIL_COND_V(total_complexity != p_state.size(), {});
+	ERR_FAIL_COND_V(total_complexity != p_squares.size(), {});
 
-	const int empty_tile_value = total_complexity - 1;
-	int empty_tile_index = empty_tile_value;
-	const Variant empty_tile = p_state[empty_tile_index];
+	int empty_tile_index = find_empty_tile(p_squares);
+	const Variant empty_tile = p_squares[empty_tile_index];
 
-	Shuffler shuffler(p_complexity, p_state, p_moves, p_rng);
+	Shuffler shuffler(p_complexity, p_squares, p_moves, p_rng);
 	PackedVector2Array moves = shuffler.shuffle();
 	Vector2 *moves_ptrw = moves.ptrw();
 	const int size = moves.size();
 	for (int i = 0; i < size; ++i) {
 		int offset = moves_ptrw[i].x + moves_ptrw[i].y * p_complexity;
 		int target = empty_tile_index + offset;
-		p_state[empty_tile_index] = p_state[target];
+		p_squares[empty_tile_index] = p_squares[target];
 		empty_tile_index = target;
 		moves_ptrw[i] = -moves_ptrw[i];
 	}
-	p_state[empty_tile_index] = empty_tile;
+	p_squares[empty_tile_index] = empty_tile;
 	moves.reverse();
 	return moves;
 }
 
-bool SlidePuzzle::is_solvable(int p_complexity, const PackedInt32Array &p_state) {
-	ERR_FAIL_COND_V(p_complexity * p_complexity != p_state.size(), false);
+bool SlidePuzzle::is_solvable(int p_complexity, const PackedInt32Array &p_squares) {
+	ERR_FAIL_COND_V(p_complexity * p_complexity != p_squares.size(), false);
 
 	const int total_complexity = p_complexity * p_complexity;
 	const int empty_tile = total_complexity - 1;
@@ -422,11 +460,11 @@ bool SlidePuzzle::is_solvable(int p_complexity, const PackedInt32Array &p_state)
 	int inversions = 0;
 
 	for (int i = 0; i < total_complexity; ++i) {
-		if (p_state[i] == empty_tile)
+		if (p_squares[i] == empty_tile)
 			continue;
 
 		for (int j = i + 1; j < total_complexity; ++j) {
-			if (p_state[j] != empty_tile && p_state[i] > p_state[j]) {
+			if (p_squares[j] != empty_tile && p_squares[i] > p_squares[j]) {
 				++inversions;
 			}
 		}
@@ -437,7 +475,7 @@ bool SlidePuzzle::is_solvable(int p_complexity, const PackedInt32Array &p_state)
 		return inversions % 2 == 0;
 	} else {
 		// even grid
-		int empty_tile_index = p_state.find(empty_tile);
+		int empty_tile_index = p_squares.find(empty_tile);
 		int empty_row_from_bottom = p_complexity - (empty_tile_index / p_complexity);
 		if (empty_row_from_bottom % 2 == 0) {
 			return inversions % 2 == 1;
@@ -449,10 +487,10 @@ bool SlidePuzzle::is_solvable(int p_complexity, const PackedInt32Array &p_state)
 	return false;
 }
 
-PackedVector2Array SlidePuzzle::solve(int p_complexity, const PackedInt32Array &p_state) {
-	ERR_FAIL_COND_V(p_complexity * p_complexity != p_state.size(), PackedVector2Array());
-	ERR_FAIL_COND_V(!is_solvable(p_complexity, p_state), PackedVector2Array());
+PackedVector2Array SlidePuzzle::solve(int p_complexity, const PackedInt32Array &p_squares) {
+	ERR_FAIL_COND_V(p_complexity * p_complexity != p_squares.size(), PackedVector2Array());
+	ERR_FAIL_COND_V(!is_solvable(p_complexity, p_squares), PackedVector2Array());
 
-	Solver solver(p_complexity, p_state);
+	Solver solver(p_complexity, p_squares);
 	return solver.solve();
 }

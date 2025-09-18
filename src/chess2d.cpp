@@ -90,6 +90,11 @@ void Chess2D::_bind_methods() {
 	}
 
 	{
+		const StringName set_make_move_method = "make_move";
+		ClassDB::bind_method(D_METHOD(set_make_move_method, "algebraic_notation"), &Chess2D::make_move);
+	}
+
+	{
 		const StringName clear_animation_offsets_method = "clear_animation_offsets";
 		ClassDB::bind_method(D_METHOD(clear_animation_offsets_method), &Chess2D::clear_animation_offsets);
 	}
@@ -395,6 +400,28 @@ void Chess2D::set_target_offsets(const PackedVector2Array &p_offsets) {
 		int y = remap / 8;
 		int out = x / 2 + y / 2 * 4;
 		square_target_offsets[i] = p_offsets[out];
+	}
+}
+
+void Chess2D::make_move(const godot::String &p_algebraic_notation) {
+	using namespace phase4::engine::common;
+	using namespace phase4::engine::moves;
+
+	if (p_algebraic_notation.length() == 2) {
+		FieldIndex field(p_algebraic_notation.ascii().get_data());
+		ERR_FAIL_COND_MSG(!field.isValid(), "Invalid field " + p_algebraic_notation);
+		if (is_flipped) {
+			selected_square = Vector2i(7 - field.x, field.y);
+		} else {
+			selected_square = Vector2i(field.x, 7 - field.y);
+		}
+		clear_animation_offsets();
+		drag_piece.reset();
+		draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES | DrawFlags::DRAG_PIECE;
+	} else if (p_algebraic_notation.length() == 4) {
+		_make_move(Move(p_algebraic_notation.ascii().get_data()));
+	} else {
+		ERR_FAIL_MSG("Invalid move " + p_algebraic_notation);
 	}
 }
 

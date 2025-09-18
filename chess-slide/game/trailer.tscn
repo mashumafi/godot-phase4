@@ -1,0 +1,100 @@
+[gd_scene load_steps=8 format=3 uid="uid://dmxma6wt8wqu4"]
+
+[ext_resource type="Texture2D" uid="uid://c88oemcjqp4y4" path="res://Textures/FlourishAtlas.tres" id="1_b7u0s"]
+[ext_resource type="ChessTheme" uid="uid://ckvvdwkbps6g1" path="res://game/default_chess_theme.tres" id="1_iayln"]
+[ext_resource type="Script" uid="uid://du5pwnvmwtk10" path="res://game/trailer.gd" id="1_m12hc"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iayln"]
+atlas = ExtResource("1_b7u0s")
+
+[sub_resource type="LabelSettings" id="LabelSettings_iayln"]
+font_size = 164
+
+[sub_resource type="Animation" id="Animation_m12hc"]
+resource_name = "trailer"
+length = 5.0
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(1, 3),
+"transitions": PackedFloat32Array(1, 1),
+"values": [{
+"args": ["CHESS"],
+"method": &"set_flourish_text"
+}, {
+"args": [],
+"method": &"solve"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_uugso"]
+_data = {
+&"trailer": SubResource("Animation_m12hc")
+}
+
+[node name="Trailer" type="Node" node_paths=PackedStringArray("board", "overlay", "flourish_label")]
+script = ExtResource("1_m12hc")
+board = NodePath("Chess2D")
+overlay = NodePath("CanvasLayer/Overlay")
+flourish_label = NodePath("CanvasLayer/Overlay/CenterContainer/HBoxContainer/Label")
+
+[node name="Chess2D" type="Chess2D" parent="."]
+input_mode = 0
+theme = ExtResource("1_iayln")
+scale = Vector2(0.6, 0.6)
+
+[node name="Camera2D" type="Camera2D" parent="Chess2D"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Overlay" type="Control" parent="CanvasLayer"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer/Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.09411765, 0.09411765, 0.09411765, 0.39607844)
+
+[node name="CenterContainer" type="CenterContainer" parent="CanvasLayer/Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Overlay/CenterContainer"]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Overlay/CenterContainer/HBoxContainer"]
+layout_mode = 2
+texture = SubResource("AtlasTexture_iayln")
+
+[node name="Label" type="Label" parent="CanvasLayer/Overlay/CenterContainer/HBoxContainer"]
+layout_mode = 2
+label_settings = SubResource("LabelSettings_iayln")
+
+[node name="TextureRect2" type="TextureRect" parent="CanvasLayer/Overlay/CenterContainer/HBoxContainer"]
+layout_mode = 2
+texture = ExtResource("1_b7u0s")
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_uugso")
+}
+autoplay = "trailer"

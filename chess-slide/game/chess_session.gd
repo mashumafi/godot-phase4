@@ -1,3 +1,4 @@
+class_name ChessSession
 extends Control
 
 @export var move_buttons: Container
@@ -6,7 +7,7 @@ extends Control
 
 var _move_button_group := ButtonGroup.new()
 
-var ZERO_PATTERN := PackedVector2Array([
+static var ZERO_PATTERN := PackedVector2Array([
 	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
 	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
 	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
@@ -101,8 +102,8 @@ func _ready() -> void:
 
 
 func _show_wall_selection() -> void:
-	var is_black_local_human := true # TODO: Check that black is a local player
 	if "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" == chess_board.fen:
+		var is_black_local_human := true # TODO: Check that black is a local player
 		chess_board.input_mode = Chess2D.INPUT_MODE_NONE
 		if is_black_local_human:
 			wall_selection.modulate = Color.WHITE
@@ -172,3 +173,5 @@ func _break_square(square: String) -> void:
 	squares.anguler_velocity = -squares.anguler_velocity if chess_board.is_flipped else squares.anguler_velocity
 	squares.position = Vector2(x, y)
 	chess_board.add_child(squares)
+
+	chess_board.make_move("d2d4")
