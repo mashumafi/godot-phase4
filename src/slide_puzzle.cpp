@@ -182,6 +182,19 @@ TileState create_goal(int p_size) {
 	return goal;
 }
 
+TileState create_goal(int64_t p_complexity, const PackedInt32Array &p_goal) {
+	int64_t total_complexity = p_complexity * p_complexity;
+	if (total_complexity != p_goal.size()) {
+		return create_goal(total_complexity);
+	}
+
+	TileState goal = 0;
+	for (int i = 0; i < p_goal.size(); ++i) {
+		goal = set_nibble(goal, i, p_goal[i]);
+	}
+	return goal;
+}
+
 TileState create_goal(Array &p_tiles) {
 	if (!is_valid_goal(p_tiles)) {
 		return create_goal(p_tiles.size());
@@ -326,10 +339,10 @@ PackedVector2Array get_moves(TileNode *current) {
 
 class Solver : public SlideUtil {
 public:
-	Solver(int p_complexity, const PackedInt32Array &p_state) :
+	Solver(int p_complexity, const PackedInt32Array &p_state, const PackedInt32Array &p_goal) :
 			SlideUtil(p_complexity),
 			state(unpack(p_state)),
-			goal(create_goal(total_complexity)) {
+			goal(create_goal(p_complexity, p_goal)) {
 		nodes.alloc(state, find_nibble(state, empty_tile), 0, heuristic(state), Vector2(), nullptr);
 	}
 
@@ -423,7 +436,7 @@ void SlidePuzzle::_bind_methods() {
 	StringName class_name = "SlidePuzzle";
 	ClassDB::bind_static_method(class_name, D_METHOD("shuffle", "complexity", "squares", "moves", "rng"), &SlidePuzzle::shuffle);
 	ClassDB::bind_static_method(class_name, D_METHOD("is_solvable", "complexity", "squares"), &SlidePuzzle::is_solvable);
-	ClassDB::bind_static_method(class_name, D_METHOD("solve", "complexity", "squares"), &SlidePuzzle::solve);
+	ClassDB::bind_static_method(class_name, D_METHOD("solve", "complexity", "squares", "goal"), &SlidePuzzle::solve, PackedInt32Array());
 }
 
 PackedVector2Array SlidePuzzle::shuffle(int p_complexity, Array p_squares, int p_moves, const Ref<RandomNumberGenerator> &p_rng) {
@@ -487,10 +500,10 @@ bool SlidePuzzle::is_solvable(int p_complexity, const PackedInt32Array &p_square
 	return false;
 }
 
-PackedVector2Array SlidePuzzle::solve(int p_complexity, const PackedInt32Array &p_squares) {
+PackedVector2Array SlidePuzzle::solve(int p_complexity, const PackedInt32Array &p_squares, const PackedInt32Array &p_goal) {
 	ERR_FAIL_COND_V(p_complexity * p_complexity != p_squares.size(), PackedVector2Array());
 	ERR_FAIL_COND_V(!is_solvable(p_complexity, p_squares), PackedVector2Array());
 
-	Solver solver(p_complexity, p_squares);
+	Solver solver(p_complexity, p_squares, p_goal);
 	return solver.solve();
 }

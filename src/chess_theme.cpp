@@ -407,6 +407,14 @@ void ChessTheme::_bind_methods() {
 		const StringName create_circle_polygon_method = "create_circle_polygon";
 		ClassDB::bind_method(D_METHOD(create_circle_polygon_method, "radius"), &ChessTheme::create_circle_polygon);
 	}
+
+	{ // Patterns
+		const StringName make_zero_pattern_method = "make_zero_pattern";
+		ClassDB::bind_method(D_METHOD(make_zero_pattern_method), &ChessTheme::make_zero_pattern);
+
+		const StringName make_random_pattern_method = "make_random_pattern";
+		ClassDB::bind_method(D_METHOD(make_random_pattern_method, "rng"), &ChessTheme::make_random_pattern);
+	}
 }
 
 const Ref<Mesh> &ChessTheme::get_annotation_mesh(phase4::engine::common::Square from, phase4::engine::common::Square to) {

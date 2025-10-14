@@ -6,24 +6,9 @@ extends Control
 @export var wall_selection : WallSelection
 
 var _move_button_group := ButtonGroup.new()
-
-static var ZERO_PATTERN := PackedVector2Array([
-	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
-	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
-	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
-	Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO,
-])
+var rng := RandomNumberGenerator.new()
 
 @onready var square_size := chess_board.theme.square_size
-
-@onready var off_screen_factor := 16
-
-@onready var HORIZONTAL_CRISS_CROSS_PATTERN := PackedVector2Array([
-	Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0),
-	Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0),
-	Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0), Vector2(square_size * off_screen_factor, 0),
-	Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0), Vector2(square_size * -off_screen_factor, 0),
-])
 
 class Squares:
 	extends Node2D
@@ -96,9 +81,9 @@ func _ready() -> void:
 	_piece_moved("*", "*", 0)
 	_show_wall_selection()
 
-	chess_board.set_target_offsets(HORIZONTAL_CRISS_CROSS_PATTERN)
+	chess_board.set_target_offsets(chess_board.theme.make_random_pattern(rng))
 	chess_board.clear_animation_offsets();
-	chess_board.set_target_offsets(ZERO_PATTERN)
+	chess_board.set_target_offsets(chess_board.theme.make_zero_pattern())
 
 
 func _show_wall_selection() -> void:
@@ -119,7 +104,7 @@ func _flip_board() -> void:
 	chess_board.is_flipped = not chess_board.is_flipped
 
 
-func _piece_moved(uci_notation: String, algebraic_notation: String, index: int) -> void:
+func _piece_moved(_uci_notation: String, algebraic_notation: String, index: int) -> void:
 	var button := Button.new()
 	button.text = algebraic_notation
 	button.button_group = _move_button_group

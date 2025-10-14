@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <cwchar>
+#include <variant>
 
 namespace phase4::engine::board {
 
@@ -139,18 +140,24 @@ public:
 		return m_details[m_current].position;
 	}
 
-	AlgebraicPieceAndSquareOffset makeMove(moves::Move &move) {
+	struct PromotionFlagMissing {};
+	using MoveResult = std::variant<std::monostate, AlgebraicPieceAndSquareOffset, PromotionFlagMissing>;
+
+	MoveResult makeMove(moves::Move &move) {
 		using namespace moves;
 		using namespace common;
 
-		AlgebraicPieceAndSquareOffset result;
-
 		const std::optional<Move> &realMove = PositionMoves::findRealMove(m_validMoves, move);
 		if (!realMove) {
-			return result;
+			if (PositionMoves::isPromotionFlagMissing(m_validMoves, move)) {
+				return PromotionFlagMissing();
+			} else {
+				return std::monostate();
+			}
 		}
 		move = *realMove;
 
+		AlgebraicPieceAndSquareOffset result;
 		result.algebraic_notation = PositionMoves::algebraicNotation(m_session.position(), move);
 
 		const Result &moveResult = m_session.makeMove(*realMove);
@@ -324,7 +331,7 @@ public:
 		Detail &lastDetail = m_details.peek();
 		Position position = lastDetail.position;
 		const PositionMoves::SlideResult result = PositionMoves::slideWall(position, wallMove);
-		// TODO: compute hash
+		// TODO: compute hash for pieces that moved
 		m_session.setPosition(position);
 
 		if (addHistory) {

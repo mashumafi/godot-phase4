@@ -43,10 +43,15 @@ public:
 		INPUT_MODE_SLIDE,
 	};
 
+	using SquareVectors = std::array<Vector2, 64>;
+
 private:
 	inline static const char *SIGNAL_PIECE_MOVED = "piece_moved";
+	inline static const char *SIGNAL_MOVE_FINISHED = "move_finished";
+	inline static const char *SIGNAL_SLIDE_FINISHED = "slide_finished";
+	inline static const char *SIGNAL_ANIMATION_FINISHED = "animation_finished";
 
-	bool _make_move(phase4::engine::moves::Move move);
+	bool _make_move(phase4::engine::moves::Move move, const Vector2& promotion_position);
 
 	void update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result);
 
@@ -88,12 +93,12 @@ private:
 	Ref<MultiMesh> piece_trail_multimesh;
 	Ref<MultiMesh> square_trail_multimesh;
 
-	std::array<Vector2, 64> square_target_offsets;
-	std::array<Vector2, 64> square_animation_offsets;
-	std::array<Vector2, 64> piece_animation_offsets;
+	SquareVectors square_target_offsets;
+	SquareVectors square_animation_offsets;
+	SquareVectors piece_animation_offsets;
 
-	std::array<Vector2, 64> piece_trail_ends;
-	std::array<Vector2, 64> slide_trail_end;
+	SquareVectors piece_trail_ends;
+	SquareVectors slide_trail_end;
 
 	std::array<std::array<Ref<MultiMesh>, 6>, 2> piece_meshes;
 

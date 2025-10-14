@@ -7,6 +7,7 @@
 #include <godot_cpp/classes/font.hpp>
 #include <godot_cpp/classes/mesh.hpp>
 #include <godot_cpp/classes/multi_mesh.hpp>
+#include <godot_cpp/classes/random_number_generator.hpp>
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
@@ -360,6 +361,54 @@ public:
 			canvas_item.set_material(material);
 		}
 		return canvas_item;
+	}
+
+	PackedVector2Array make_zero_pattern() const {
+		return PackedVector2Array{
+			Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0),
+			Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0),
+			Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0),
+			Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)
+		};
+	}
+
+	PackedVector2Array make_horizontal_criss_cross_pattern() const {
+		real_t offset = square_size * 16;
+		return PackedVector2Array{
+			Vector2(+offset, 0), Vector2(+offset, 0), Vector2(+offset, 0), Vector2(+offset, 0),
+			Vector2(-offset, 0), Vector2(-offset, 0), Vector2(-offset, 0), Vector2(-offset, 0),
+			Vector2(+offset, 0), Vector2(+offset, 0), Vector2(+offset, 0), Vector2(+offset, 0),
+			Vector2(-offset, 0), Vector2(-offset, 0), Vector2(-offset, 0), Vector2(-offset, 0)
+		};
+	}
+
+	PackedVector2Array make_horizontal_criss_cross_pattern_expo() const {
+		real_t offset1 = square_size * 16;
+		real_t offset2 = offset1 * 1.2;
+		real_t offset3 = offset1 * 1.4;
+		real_t offset4 = offset1 * 1.8;
+
+		return PackedVector2Array{
+			Vector2(+offset1, 0), Vector2(+offset2, 0), Vector2(+offset3, 0), Vector2(+offset4, 0),
+			Vector2(-offset4, 0), Vector2(-offset3, 0), Vector2(-offset2, 0), Vector2(-offset1, 0),
+			Vector2(+offset1, 0), Vector2(+offset2, 0), Vector2(+offset3, 0), Vector2(+offset4, 0),
+			Vector2(-offset4, 0), Vector2(-offset3, 0), Vector2(-offset2, 0), Vector2(-offset1, 0),
+		};
+	}
+
+	PackedVector2Array make_random_pattern(const Ref<godot::RandomNumberGenerator> &rng) const {
+		ERR_FAIL_COND_V(rng.is_null(), make_zero_pattern());
+
+		switch (rng->randi_range(0, 1)) {
+			case 0: {
+				return make_horizontal_criss_cross_pattern();
+			}
+			case 1: {
+				return make_horizontal_criss_cross_pattern_expo();
+			}
+		}
+
+		ERR_FAIL_V(make_zero_pattern());
 	}
 };
 

@@ -10,6 +10,7 @@ const COLOR_KEY := &"color"
 const PADDING := 15.0
 const SCALE := 0.8
 
+@export var logo : Sprite2D
 
 class PuzzleWrapper:
 	extends Node2D
@@ -85,6 +86,7 @@ class PuzzlePool:
 
 		var puzzle := PuzzleWrapper.new(chess_theme, color, RNG)
 		puzzle._puzzle.solved.connect(func():
+			return # NOTE: Not changing the color on solve
 			var tween := puzzle.create_tween()
 			tween.tween_property(puzzle, "modulate", Color(Color.WHITE, .7), .3).set_trans(Tween.TRANS_CUBIC)
 		)
@@ -107,6 +109,7 @@ class PuzzleSpawner:
 
 	var _chess_theme : ChessTheme
 	var _puzzles: PuzzlePool
+	var _rng := RandomNumberGenerator.new()
 
 	func _init(chess_theme: ChessTheme, puzzles: PuzzlePool) -> void:
 		_chess_theme = chess_theme
@@ -118,6 +121,8 @@ class PuzzleSpawner:
 
 
 	func _draw() -> void:
+		return # NOTE: Skip deubg drawing
+
 		if not OS.is_debug_build():
 			return
 
@@ -141,8 +146,18 @@ class PuzzleSpawner:
 		return child.position - sign(magnitude) * Vector2(child._puzzle.texture.get_size().x * SCALE + 2 * PADDING, child._puzzle.texture.get_size().y * SCALE + 2 * PADDING)
 
 
+	func _random_color() -> ChessTheme.PieceColor:
+		match _rng.randi_range(0, 0): # NOTE: Only returning white
+			0: 
+				return ChessTheme.PieceColor.PIECE_COLOR_WHITE
+			1:
+				return ChessTheme.PieceColor.PIECE_COLOR_BLACK
+
+		return ChessTheme.PieceColor.PIECE_COLOR_WHITE
+
+
 	func _spawn() -> void:
-		var puzzle := _puzzles.alloc_slide_puzzle(_chess_theme, 0)
+		var puzzle := _puzzles.alloc_slide_puzzle(_chess_theme, _random_color())
 		puzzle.position = _get_offset()
 		puzzle.modulate = Color(Color.WHITE, .3)
 		puzzle.shown.connect(func():
@@ -174,13 +189,17 @@ var _puzzles := PuzzlePool.new()
 
 
 func _ready() -> void:
+	logo.position.x = get_tree().root.size.x + logo.texture.get_size().x
+	var tween := create_tween()
+	tween.tween_property(logo, "position", Vector2.ZERO, 1.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_EXPO).set_delay(1.0)
+
 	var SUPPORTED_ROTATIONS : Array[float] = [
 		40, 0, -40, # RIGHT (0, 1, 2)
 		-50, -90, -130, # UP (3, 4, 5)
 		-140, -180, -220, # LEFT (6, 7, 8)
 		-230, -270, -310, # DOWN (9, 10, 11)
 	]
-	var ROTATION := deg_to_rad(SUPPORTED_ROTATIONS[11])
+	var ROTATION := deg_to_rad(SUPPORTED_ROTATIONS[5])
 	var direction := Vector2.RIGHT.rotated(ROTATION)
 
 	var slow_mag := 125.0
@@ -188,7 +207,6 @@ func _ready() -> void:
 	var cross_pattern := true
 
 	var is_vertical := absf(direction.x) < absf(direction.y)
-	var factor := direction.y if is_vertical else direction.x
 
 	var spawner_size := 225.0 * SCALE
 	var padding := PADDING * 2
