@@ -140,6 +140,11 @@ public:
 		return m_details[m_current].position;
 	}
 
+	const Position &last() const {
+		assert(!m_details.is_empty());
+		return m_details[m_details.size() - 1].position;
+	}
+
 	struct PromotionFlagMissing {};
 	using MoveResult = std::variant<std::monostate, AlgebraicPieceAndSquareOffset, PromotionFlagMissing>;
 

@@ -127,6 +127,9 @@ bool Chess2D::_make_move(phase4::engine::moves::Move move, const Vector2 &promot
 	using namespace phase4::engine::moves;
 	using namespace phase4::engine::board;
 
+	draw_flags |= DrawFlags::PROMOTION;
+	promotion_placement.reset();
+
 	const PositionView::MoveResult &result = position.makeMove(move);
 
 	auto visitor = [this, move, &promotion_position](auto result) -> bool {
@@ -135,7 +138,7 @@ bool Chess2D::_make_move(phase4::engine::moves::Move move, const Vector2 &promot
 		if constexpr (std::is_same_v<T, std::monostate>) {
 			return false;
 		} else if constexpr (std::is_same_v<T, PositionView::PromotionFlagMissing>) {
-			// TODO: Show promotion popup
+			promotion_placement = promotion_position;
 			return false;
 		} else if constexpr (std::is_same_v<T, AlgebraicPieceAndSquareOffset>) {
 			update_animation_offsets(result);
@@ -150,6 +153,11 @@ bool Chess2D::_make_move(phase4::engine::moves::Move move, const Vector2 &promot
 		}
 	};
 	return std::visit(visitor, result);
+}
+
+void Chess2D::add_draw_flags(DrawFlags flags) {
+	draw_flags |= flags;
+	queue_redraw();
 }
 
 void Chess2D::update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result) {
@@ -171,8 +179,7 @@ void Chess2D::update_animation_offsets(const phase4::engine::board::PieceAndSqua
 		piece_trail_ends[Square(i)] = get_square_position(result.pieces[i]) + Vector2(.5, .5) * theme->get_square_size();
 	}
 
-	draw_flags |= DrawFlags::BOARD;
-	queue_redraw();
+	add_draw_flags(DrawFlags::BOARD);
 }
 
 Chess2D::Chess2D() {
@@ -286,6 +293,10 @@ void Chess2D::theme_changed() {
 	drag_piece_canvas_item.set_parent(get_canvas_item());
 	drag_piece_canvas_item.set_draw_index(draw_index++);
 
+	promotion_canvas_item.instantiate();
+	promotion_canvas_item.set_parent(get_canvas_item());
+	promotion_canvas_item.set_draw_index(draw_index++);
+
 	clear_animation_offsets();
 }
 
@@ -379,8 +390,7 @@ void Chess2D::clear_animation_offsets() {
 		emit_signal(StringName(SIGNAL_ANIMATION_FINISHED));
 	}
 
-	draw_flags |= DrawFlags::BOARD;
-	queue_redraw();
+	add_draw_flags(DrawFlags::BOARD);
 }
 
 void Chess2D::break_square(const godot::String &square_name) {
@@ -390,8 +400,7 @@ void Chess2D::break_square(const godot::String &square_name) {
 
 	Square square = Square(square_name.ascii().get_data());
 	position.setWalls(square);
-	draw_flags |= DrawFlags::SQUARES | DrawFlags::FILE_RANK;
-	queue_redraw();
+	add_draw_flags(DrawFlags::SQUARES_FILE_RANK);
 }
 
 void Chess2D::slide_squares(const Vector2i &direction) {
@@ -491,8 +500,7 @@ void Chess2D::_process(double delta) {
 
 	const Bitboard walls = position.current().walls();
 	if (walls != 0) {
-		draw_flags |= DrawFlags::FLOURISH;
-		queue_redraw();
+		add_draw_flags(DrawFlags::FLOURISH);
 	}
 
 	// Process piece offsets
@@ -506,8 +514,7 @@ void Chess2D::_process(double delta) {
 
 		if (piece_offset != piece_animation_offsets.end()) {
 			auto firstOffset = piece_offset;
-			draw_flags |= DrawFlags::PIECES;
-			queue_redraw();
+			add_draw_flags(DrawFlags::PIECES);
 
 			for (; piece_offset != piece_animation_offsets.end(); ++piece_offset) {
 				if (*piece_offset != Vector2(0, 0)) {
@@ -528,8 +535,7 @@ void Chess2D::_process(double delta) {
 			}
 
 			if (square_offset < square_animation_offsets.size()) {
-				draw_flags |= DrawFlags::BOARD;
-				queue_redraw();
+				add_draw_flags(DrawFlags::BOARD);
 
 				do {
 					if (square_animation_offsets[square_offset] != square_target_offsets[square_offset]) {
@@ -600,8 +606,7 @@ void Chess2D::_process(double delta) {
 
 	// Update dragging piece
 	if (drag_piece) {
-		draw_flags |= DrawFlags::DRAG_PIECE;
-		queue_redraw();
+		add_draw_flags(DrawFlags::DRAG_PIECE);
 	}
 }
 
@@ -870,6 +875,26 @@ void Chess2D::_draw() {
 		}
 	}
 
+	if (draw_flags & DrawFlags::PROMOTION) {
+		promotion_canvas_item.clear();
+
+		if (promotion_placement) {
+			std::array<ChessTheme::PieceType, 4> promotion_pieces{ ChessTheme::PIECE_TYPE_KNIGHT, ChessTheme::PIECE_TYPE_BISHOP, ChessTheme::PIECE_TYPE_ROOK, ChessTheme::PIECE_TYPE_QUEEN };
+			const real_t square_size = theme->get_square_size() / 2;
+			for (size_t i = 0; i < promotion_pieces.size(); ++i) {
+				const Ref<Texture> &texture = theme->get_piece_texture(static_cast<ChessTheme::PieceColor>(position.last().colorToMove().get_raw_value()), promotion_pieces[i]);
+				float x = i / 2;
+				float y = i % 2;
+				Rect2 display(
+						promotion_placement->x - square_size + x * square_size,
+						promotion_placement->y - square_size + y * square_size,
+						square_size, square_size);
+				promotion_canvas_item.add_rect(display, Color(.3, .2, .2, .4));
+				promotion_canvas_item.add_texture_rect(display, *texture.ptr());
+			}
+		}
+	}
+
 	draw_flags = DrawFlags::NONE;
 }
 
@@ -895,25 +920,21 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 			if (annotation_end_square != mouse_square_transform) {
 				if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
 					annotation_end_square = mouse_square_transform;
-					draw_flags |= DrawFlags::ANNOTATIONS;
-					queue_redraw();
+					add_draw_flags(DrawFlags::ANNOTATIONS);
 				} else if (annotation_end_square) {
 					annotation_end_square.reset();
-					draw_flags |= DrawFlags::ANNOTATIONS;
-					queue_redraw();
+					add_draw_flags(DrawFlags::ANNOTATIONS);
 				}
 			}
 		} else {
 			if (Rect2(0, 0, 8, 8).has_point(mouse_square_transform)) {
 				if (highlighted_square != mouse_square_transform) {
 					highlighted_square = mouse_square_transform;
-					draw_flags |= DrawFlags::HIGHLIGHT;
-					queue_redraw();
+					add_draw_flags(DrawFlags::HIGHLIGHT);
 				}
 			} else if (highlighted_square) {
 				highlighted_square.reset();
-				draw_flags |= DrawFlags::HIGHLIGHT;
-				queue_redraw();
+				add_draw_flags(DrawFlags::HIGHLIGHT);
 			}
 		}
 	}
@@ -928,7 +949,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 			if (mouse_button->is_pressed()) {
 				if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
-						_make_move(Move(*from, *to, MoveFlags::QUIET), get_mouse_coordinate());
+						_make_move(Move(*from, *to, MoveFlags::QUIET), get_global_mouse_position());
 					}
 					if (position.validMoves(*to).is_empty()) {
 						selected_square.reset();
@@ -953,7 +974,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 
 				if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
-						if (_make_move(Move(*from, *to, MoveFlags::QUIET), get_mouse_coordinate())) {
+						if (_make_move(Move(*from, *to, MoveFlags::QUIET), get_global_mouse_position())) {
 							selected_square.reset();
 							draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 							queue_redraw();
@@ -967,8 +988,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					highlighted_square.reset();
 					annotation_begin_square = mouse_square_transform;
 					annotation_end_square = mouse_square_transform;
-					draw_flags |= DrawFlags::ANNOTATIONS | DrawFlags::HIGHLIGHT;
-					queue_redraw();
+					add_draw_flags(DrawFlags::ANNOTATION_CHANGED);
 				} else if (annotation_begin_square) {
 					if (annotation_end_square) {
 						const Square from(FieldIndex(annotation_begin_square->x, 7 - annotation_begin_square->y));
@@ -978,8 +998,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 						annotation_end_square.reset();
 					}
 					annotation_begin_square.reset();
-					draw_flags |= DrawFlags::ANNOTATIONS | DrawFlags::HIGHLIGHT;
-					queue_redraw();
+					add_draw_flags(DrawFlags::ANNOTATION_CHANGED);
 				}
 			} else if (annotation_begin_square) {
 				annotation_begin_square.reset();

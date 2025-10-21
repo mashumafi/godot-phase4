@@ -30,9 +30,14 @@ class Chess2D : public Node2D {
 		VALID_MOVES = 0b100000,
 		DRAG_PIECE = 0b1000000,
 		FILE_RANK = 0b10000000,
+		PROMOTION = 0b100000000,
 
+		ANNOTATION_CHANGED = ANNOTATIONS | HIGHLIGHT,
+		PIECE_CLICKED = HIGHLIGHT | VALID_MOVES,
+		PIECE_DRAGGED = HIGHLIGHT | VALID_MOVES | DRAG_PIECE,
+		SQUARES_FILE_RANK = SQUARES | FILE_RANK,
 		BOARD = SQUARES | PIECES | FILE_RANK,
-		ALL = 0b11111111,
+		ALL = 0b111111111,
 	};
 	int64_t draw_flags = DrawFlags::ALL;
 
@@ -52,6 +57,7 @@ private:
 	inline static const char *SIGNAL_ANIMATION_FINISHED = "animation_finished";
 
 	bool _make_move(phase4::engine::moves::Move move, const Vector2& promotion_position);
+	void add_draw_flags(DrawFlags flags);
 
 	void update_animation_offsets(const phase4::engine::board::PieceAndSquareOffset &result);
 
@@ -64,6 +70,7 @@ private:
 	std::optional<Vector2i> drag_piece;
 	std::optional<Vector2i> annotation_begin_square;
 	std::optional<Vector2i> annotation_end_square;
+	std::optional<Vector2> promotion_placement;
 	std::unordered_set<uint16_t> annotations;
 
 	phase4::engine::board::PositionView position;
@@ -86,6 +93,7 @@ private:
 	CanvasItemUtil selected_canvas_item;
 	CanvasItemUtil annotations_canvas_item;
 	CanvasItemUtil drag_piece_canvas_item;
+	CanvasItemUtil promotion_canvas_item;
 
 	BatchMultiMesh<2> valid_circle_multimeshes;
 	Ref<MultiMesh> valid_square_multimesh;
