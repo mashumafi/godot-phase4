@@ -389,10 +389,22 @@ public:
 		real_t offset4 = offset1 * 1.8;
 
 		return PackedVector2Array{
-			Vector2(+offset1, 0), Vector2(+offset2, 0), Vector2(+offset3, 0), Vector2(+offset4, 0),
-			Vector2(-offset4, 0), Vector2(-offset3, 0), Vector2(-offset2, 0), Vector2(-offset1, 0),
-			Vector2(+offset1, 0), Vector2(+offset2, 0), Vector2(+offset3, 0), Vector2(+offset4, 0),
-			Vector2(-offset4, 0), Vector2(-offset3, 0), Vector2(-offset2, 0), Vector2(-offset1, 0),
+			Vector2(+offset1, 0),
+			Vector2(+offset2, 0),
+			Vector2(+offset3, 0),
+			Vector2(+offset4, 0),
+			Vector2(-offset4, 0),
+			Vector2(-offset3, 0),
+			Vector2(-offset2, 0),
+			Vector2(-offset1, 0),
+			Vector2(+offset1, 0),
+			Vector2(+offset2, 0),
+			Vector2(+offset3, 0),
+			Vector2(+offset4, 0),
+			Vector2(-offset4, 0),
+			Vector2(-offset3, 0),
+			Vector2(-offset2, 0),
+			Vector2(-offset1, 0),
 		};
 	}
 
