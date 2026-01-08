@@ -85,6 +85,7 @@ func solve() -> void:
 func shuffle(moves: int) -> void:
 	reset()
 	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
 	solution = SlidePuzzle.shuffle(complexity, squares, moves, rng)
 	set_process(true)
 

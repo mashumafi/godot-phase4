@@ -149,6 +149,10 @@ public:
 
 	void toggle_annotation(phase4::engine::common::Square from, phase4::engine::common::Square to);
 
+	bool insert_annotation(const godot::String& squares);
+	bool erase_annotation(const godot::String& squares);
+	void clear_annotations();
+
 	void clear_animation_offsets();
 
 	void break_square(const godot::String &square_name);

@@ -56,8 +56,8 @@ PromotionDisplay make_promotion_display(const Vector2 &position, const Ref<Chess
 		float y = i % 2;
 		promo_display[i].piece_type = promotion_pieces[i];
 		promo_display[i].display = Rect2(
-				position.x - square_size + x * square_size,
-				position.y - square_size + y * square_size,
+				position.x + x * square_size,
+				position.y + y * square_size,
 				square_size, square_size);
 	}
 	return promo_display;
@@ -165,6 +165,17 @@ void Chess2D::_bind_methods() {
 	{
 		const StringName square_to_field_method = "square_to_field";
 		ClassDB::bind_static_method(class_name, D_METHOD(square_to_field_method, "square_name", "flip"), &Chess2D::square_to_field, false);
+	}
+
+	{
+		const StringName insert_annotation_method = "insert_annotation";
+		ClassDB::bind_method(D_METHOD(insert_annotation_method, "squares"), &Chess2D::insert_annotation);
+
+		const StringName erase_annotation_method = "erase_annotation";
+		ClassDB::bind_method(D_METHOD(erase_annotation_method, "squares"), &Chess2D::erase_annotation);
+
+		const StringName clear_annotation_method = "clear_annotation";
+		ClassDB::bind_method(D_METHOD(clear_annotation_method), &Chess2D::clear_annotations);
 	}
 
 	ADD_SIGNAL(MethodInfo(StringName(SIGNAL_PIECE_MOVED), PropertyInfo(Variant::STRING, "uci_notation"), PropertyInfo(Variant::STRING, "algebraic_notation"), PropertyInfo(Variant::INT, "index")));
@@ -413,6 +424,32 @@ void Chess2D::toggle_annotation(phase4::engine::common::Square from, phase4::eng
 	} else {
 		annotations.insert(value);
 	}
+	add_draw_flags(DrawFlags::ANNOTATION_CHANGED);
+}
+
+bool Chess2D::insert_annotation(const godot::String &squares) {
+	phase4::engine::moves::Move move(squares.ascii().get_data());
+	const int16_t value = move.from().get_raw_value() + move.to().get_raw_value() * 64;
+	auto annotation = annotations.find(value);
+	ERR_FAIL_COND_V_MSG(annotation != annotations.end(), false, "Annotation already exists.");
+	annotations.insert(value);
+	add_draw_flags(DrawFlags::ANNOTATION_CHANGED);
+	return true;
+}
+
+bool Chess2D::erase_annotation(const godot::String &squares) {
+	phase4::engine::moves::Move move(squares.ascii().get_data());
+	const int16_t value = move.from().get_raw_value() + move.to().get_raw_value() * 64;
+	auto annotation = annotations.find(value);
+	ERR_FAIL_COND_V_MSG(annotation == annotations.end(), false, "Annotation was not found.");
+	annotations.erase(annotation);
+	add_draw_flags(DrawFlags::ANNOTATION_CHANGED);
+	return true;
+}
+
+void Chess2D::clear_annotations() {
+	annotations.clear();
+	add_draw_flags(DrawFlags::ANNOTATION_CHANGED);
 }
 
 void Chess2D::clear_animation_offsets() {
@@ -520,7 +557,7 @@ void Chess2D::make_move(const godot::String &p_algebraic_notation) {
 	} else if (p_algebraic_notation.length() >= 4) {
 		Move move(p_algebraic_notation.ascii().get_data());
 		Vector2 half_square = Vector2(.5, .5) * theme->get_square_size();
-		if (!_make_move(move, get_square_position(move.to()) + half_square)) {
+		if (!_make_move(move, get_square_position(move.to()))) {
 			FieldIndex field(move.from().asFieldIndex());
 			ERR_FAIL_COND_MSG(!field.isValid(), "Invalid field " + p_algebraic_notation);
 			if (is_flipped) {
@@ -1015,7 +1052,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					add_draw_flags(DrawFlags::PROMOTION);
 					if (const std::optional<Square> &to = get_mouse_square()) {
 						if (const std::optional<Square> &from = get_selected()) {
-							_make_move(Move(*from, *to, MoveFlags::promotion_from_piece_type(to_phase4_piece_type(promotion->piece_type))), get_global_mouse_position());
+							_make_move(Move(*from, *to, MoveFlags::promotion_from_piece_type(to_phase4_piece_type(promotion->piece_type))), get_square_position(*to));
 						}
 					}
 					selected_square.reset();
@@ -1026,7 +1063,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 					add_draw_flags(DrawFlags::PROMOTION);
 				} else if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
-						_make_move(Move(*from, *to, MoveFlags::QUIET), get_global_mouse_position());
+						_make_move(Move(*from, *to, MoveFlags::QUIET), get_square_position(*to));
 					}
 					if (position.validMoves(*to).is_empty()) {
 						// Clicked an invalid square
@@ -1056,7 +1093,7 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 
 				if (const std::optional<Square> &to = get_mouse_square()) {
 					if (const std::optional<Square> &from = get_selected()) {
-						if (_make_move(Move(*from, *to, MoveFlags::QUIET), get_global_mouse_position())) {
+						if (_make_move(Move(*from, *to, MoveFlags::QUIET), get_square_position(*to))) {
 							selected_square.reset();
 							draw_flags |= DrawFlags::HIGHLIGHT | DrawFlags::VALID_MOVES;
 							queue_redraw();
@@ -1080,7 +1117,6 @@ void Chess2D::_input(const Ref<InputEvent> &event) {
 						annotation_end_square.reset();
 					}
 					annotation_begin_square.reset();
-					add_draw_flags(DrawFlags::ANNOTATION_CHANGED);
 				}
 			} else if (annotation_begin_square) {
 				annotation_begin_square.reset();

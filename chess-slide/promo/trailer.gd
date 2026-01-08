@@ -11,6 +11,10 @@ var title := Title.instantiate()
 var rng := RandomNumberGenerator.new()
 var solution := PackedVector2Array()
 
+func make_move(move: String):
+	board.make_move(move)
+	await board.animation_finished
+
 func _ready() -> void:
 	Engine.time_scale = 1.75
 	board.fen = "rnbqkbnr/pppppppp/8/8/4**2/4**2/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -26,20 +30,15 @@ func _ready() -> void:
 	Engine.time_scale = 1.0
 
 	await sleep(1.0)
-	board.make_move("g1h3")
-	await board.animation_finished
+	await make_move("g1h3")
 	await sleep(.5)
-	board.make_move("b8c6")
-	await board.animation_finished
+	await make_move("b8c6")
 	await sleep(.5)
-	board.make_move("d2d4")
-	await board.animation_finished
+	await make_move("d2d4")
 	await sleep(.5)
-	board.make_move("e7e5")
-	await board.animation_finished
+	await make_move("e7e5")
 	await sleep(.5)
-	board.make_move("e2e4")
-	await board.animation_finished
+	await make_move("e2e4")
 	await sleep(1.5)
 
 	Engine.time_scale = 2.6
@@ -50,6 +49,18 @@ func _ready() -> void:
 
 
 	# Promotion
+	board.fen = "**6/**3N1R/2K2kp1/1P5r/8/8/8/6b1 w - - 5 51"
+	set_target_offsets(board.theme.make_zero_pattern())
+	await set_flourish_text("Promote")
+	Engine.time_scale = 1.0
+	board.insert_annotation("g1b6")
+	board.make_move("b5b6") # Preview move
+	await sleep(1.5)
+	board.clear_annotation()
+	await make_move("b5b6q")
+	await sleep(1.5)
+	Engine.time_scale = 2.6
+	await set_target_offsets()
 
 	# En Passant
 	board.fen = "3rk1r1/p2n1p2/qpQP2p1/4P2p/2P1**1P/4**PB/P7/2R3K1 b - - 2 33"
@@ -57,11 +68,11 @@ func _ready() -> void:
 	await set_flourish_text("En Passant")
 	Engine.time_scale = 1.0
 	await sleep(.5)
-	board.make_move("f7f5")
+	await make_move("f7f5")
 	await sleep(.5)
-	board.make_move("e3")
+	board.make_move("e3") # Preview move
 	await sleep(1.5)
-	board.make_move("e3f4")
+	await make_move("e3f4")
 	Engine.time_scale = .7
 	await sleep(.5)
 	Engine.time_scale = 2.6
@@ -71,18 +82,27 @@ func _ready() -> void:
 	await set_target_offsets(board.theme.make_zero_pattern())
 	Engine.time_scale = 1.0
 	await sleep(.5)
-	board.make_move("b7b5")
+	await make_move("b7b5")
 	await sleep(.5)
-	board.make_move("e5")
+	board.make_move("e5") # Preview move
 	await sleep(1.5)
-	board.make_move("e5d6")
-	await sleep(.5)
-	Engine.time_scale = 1.0
-
-	await set_flourish_text("New Tactics")
+	await make_move("e5d6")
+	await sleep(1.5)
+	Engine.time_scale = 2.6
+	set_target_offsets()
 	
-	# Show exposing king
 	# Grab and go
+	board.fen = "rnb1kbnr/ppqppppp/8/2p5/4P1**/3P2**/PPP1PP1P/RNBQKBNR w KQkq - 1 3"
+	set_target_offsets(board.theme.make_zero_pattern())
+	await set_flourish_text("New Tactics")
+	Engine.time_scale = 1.0
+	await sleep(1.5)
+	await make_move("c1g5")
+	await sleep(1.5)
+	await make_move("c7g3")
+	await sleep(1.5)
+
+	# Show exposing king
 	# Fortress?
 
 	# Versus

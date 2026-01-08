@@ -158,5 +158,3 @@ func _break_square(square: String) -> void:
 	squares.anguler_velocity = -squares.anguler_velocity if chess_board.is_flipped else squares.anguler_velocity
 	squares.position = Vector2(x, y)
 	chess_board.add_child(squares)
-
-	chess_board.make_move("d2d4")
